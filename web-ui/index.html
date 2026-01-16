@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚀 Universal Skill Hub</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --secondary: #64748b;
+      --bg-color: #f1f5f9;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius-md: 0.5rem;
+      --radius-lg: 1rem;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.5;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 80vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.025em;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 1.1rem;
+      font-weight: 400;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      background: #f8fafc;
+      padding: 0 1rem;
+    }
+
+    .tab {
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tab:hover {
+      color: var(--primary);
+      background-color: #f1f5f9;
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: white;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      margin-bottom: -1px;
+      border: 1px solid var(--border-color);
+      border-bottom-color: white;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 2rem;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--text-main);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 0.95rem;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      transition: all 0.2s;
+      background-color: #f8fafc;
+    }
+
+    input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      background-color: white;
+    }
+
+    /* Improved Button Styles */
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem; /* Larger padding */
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      min-height: 48px; /* Consistent height */
+      line-height: 1;
+    }
+
+    button:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    button.secondary {
+      background-color: white;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    button.secondary:hover {
+      background-color: #f8fafc;
+      border-color: #cbd5e1;
+    }
+    
+    button.danger {
+        background-color: #ef4444;
+        color: white;
+    }
+    
+    button.danger:hover {
+        background-color: #dc2626;
+    }
+    
+    button.icon-btn {
+        padding: 0.5rem;
+        min-height: auto;
+        aspect-ratio: 1;
+    }
+
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .skill-item {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .skill-item:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .skill-item.selected {
+      border-color: var(--primary);
+      background-color: #eef2ff;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .skill-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+
+    .skill-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      line-height: 1.4;
+      flex-grow: 1;
+    }
+
+    .skill-size {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      background: #f1f5f9;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      align-self: flex-start;
+    }
+
+    .checkbox {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--primary);
+      border-radius: 4px;
+      margin-right: 0.75rem;
+      display: inline-block;
+      vertical-align: text-bottom;
+      position: relative;
+    }
+    
+    .skill-item.selected .checkbox {
+        background-color: var(--primary);
+    }
+    
+    .skill-item.selected .checkbox::after {
+        content: '✓';
+        color: white;
+        font-size: 14px;
+        position: absolute;
+        top: -2px;
+        left: 3px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-box {
+      background: white;
+      padding: 2rem;
+      border-radius: var(--radius-md);
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .skills-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .skill-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .skill-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+    }
+
+    .skill-info h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.1rem;
+      color: var(--text-main);
+    }
+
+    .skill-info p {
+      margin: 0 0 0.5rem 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    
+    .skill-usage {
+        display: inline-flex;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: #94a3b8;
+    }
+
+    .skill-tag {
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: var(--primary);
+      border-radius: 999px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .alert {
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 500;
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 1000;
+      box-shadow: var(--shadow-lg);
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .alert.success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .alert.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .project-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      transition: all 0.2s;
+    }
+
+    .project-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+    }
+
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .project-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0;
+    }
+
+    .project-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .project-path {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      font-family: 'Consolas', monospace;
+      background: #f8fafc;
+      padding: 0.5rem;
+      border-radius: 4px;
+    }
+
+    .project-skills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+      background: #f8fafc;
+      border-radius: var(--radius-md);
+      border: 2px dashed var(--border-color);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .modal {
+      background: white;
+      border-radius: var(--radius-lg);
+      width: 90%;
+      max-width: 600px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+      animation: scaleIn 0.2s ease-out;
+    }
+    
+    @keyframes scaleIn {
+        from { transform: scale(0.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0;
+      color: var(--text-main);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 0.25rem;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+      color: var(--text-main);
+      background: #e2e8f0;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-footer {
+      padding: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      background: #f8fafc;
+    }
+
+    .skills-checklist {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.5rem;
+    }
+
+    .skill-checkbox-item {
+      padding: 0.75rem;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 2px;
+    }
+
+    .skill-checkbox-item:hover {
+      background: #f1f5f9;
+    }
+
+    .skill-checkbox-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      margin-top: 3px;
+      accent-color: var(--primary);
+    }
+
+    .skill-checkbox-label {
+      flex: 1;
+      cursor: pointer;
+    }
+    
+    .skill-checkbox-label div:first-child {
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .skill-checkbox-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+    
+    code {
+        background: #f1f5f9;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-family: 'Consolas', monospace;
+        font-size: 0.9em;
+        color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 Universal Skill Hub</h1>
+      <p>跨工具通用 Skills 管理系统 - 支持 Claude Code, Cursor, Windsurf</p>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="install">
+          <span>📦</span> 安装 Skills
+      </div>
+      <div class="tab" data-tab="manage">
+          <span>📁</span> 项目管理
+      </div>
+      <div class="tab" data-tab="skills-mgr">
+          <span>⚙️</span> Skills 管理
+      </div>
+    </div>
+
+    <!-- 安装 Skills -->
+    <div id="install" class="tab-content active">
+      <div class="card">
+        <h2>从 GitHub 安装 Skills</h2>
+        <div class="form-group">
+          <label>GitHub 仓库或 Skill 地址</label>
+          <div style="display: flex; gap: 10px;">
+              <input type="text" id="github-repo" placeholder="anthropics/skills" value="anthropics/skills" style="flex: 1;">
+              <button onclick="previewGithubSource()">🔍 预览 Skills</button>
+          </div>
+          <small style="color: var(--text-muted); margin-top: 8px; display: block; font-size: 0.85rem;">
+            支持格式：
+            <code>owner/repo</code>（整个仓库）、
+            <code>owner/repo/skills/name</code>（子路径）、
+            或完整 GitHub URL
+          </small>
+        </div>
+      </div>
+
+      <div id="preview-result" style="display: none;">
+        <!-- 预览结果会显示在这里 -->
+      </div>
+
+      <div id="install-progress" style="display: none;">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>正在安装 skills...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 项目管理 -->
+    <div id="manage" class="tab-content">
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-number" id="stat-skills">-</div>
+          <div class="stat-label">Skills</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="stat-projects">-</div>
+          <div class="stat-label">项目</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="stat-links">-</div>
+          <div class="stat-label">配置</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0;">📁 我的项目</h2>
+          <button onclick="openProjectModal()">➕ 新建项目</button>
+        </div>
+        
+        <div id="projects-list">
+          <!-- 项目列表动态生成 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills 管理 -->
+    <div id="skills-mgr" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0;">📦 已安装的 Skills</h2>
+          <button class="secondary" onclick="loadSkillsManagement()">🔄 刷新列表</button>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">管理所有已安装的 skills，查看使用情况或卸载</p>
+        <div id="installed-skills-list" class="skills-list">
+          <!-- Skills 列表会动态生成 -->
+        </div>
+      </div>
+    </div>
+
+    <div id="message-area"></div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+    let availableSkills = [];
+    let selectedSkills = new Set();
+    let currentPreviewSource = '';
+    let projectsData = {};
+    let currentProject = null;
+
+    // 工具配置
+    const TOOLS = {
+      'claude-code': { name: 'Claude Code', icon: '🤖' },
+      'cursor': { name: 'Cursor', icon: '✨' },
+      'windsurf': { name: 'Windsurf', icon: '🌊' }
+    };
+
+    // 当前项目的工具配置
+    let projectToolSkills = {
+      'claude-code': new Set(),
+      'cursor': new Set(),
+      'windsurf': new Set()
+    };
+
+    // 标签切换
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+
+        // 根据标签加载相应数据
+        if (tab.dataset.tab === 'manage') {
+          loadProjectsList();
+        } else if (tab.dataset.tab === 'skills-mgr') {
+          loadSkillsManagement();
+        }
+      });
+    });
+
+    // 页面加载时自动加载
+    window.addEventListener('load', async () => {
+      await loadAllSkills();
+      await loadStats();
+    });
+
+    // 加载所有 skills
+    async function loadAllSkills() {
+      try {
+        const response = await fetch(`${API_BASE}/skills`);
+        const data = await response.json();
+        availableSkills = data.skills;
+      } catch (error) {
+        console.error('Failed to load skills:', error);
+      }
+    }
+
+    // 加载统计信息
+    async function loadStats() {
+      try {
+        const response = await fetch(`${API_BASE}/projects`);
+        const data = await response.json();
+        projectsData = data;
+
+        const projectCount = Object.keys(data.projects || {}).length;
+        const skillCount = availableSkills.length;
+        let configCount = 0;
+
+        Object.values(data.projects || {}).forEach(proj => {
+          Object.values(proj.tools || {}).forEach(skills => {
+            configCount += skills.length;
+          });
+        });
+
+        document.getElementById('stat-skills').textContent = skillCount;
+        document.getElementById('stat-projects').textContent = projectCount;
+        document.getElementById('stat-links').textContent = configCount;
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+      }
+    }
+
+    // ========== 项目管理功能（重构版）==========
+
+    let currentEditProject = null;
+
+    // 加载并渲染项目列表
+    async function loadProjectsList() {
+      try {
+        const response = await fetch(`${API_BASE}/projects`);
+        const data = await response.json();
+        projectsData = data;
+
+        renderProjectsList(data.projects || {});
+      } catch (error) {
+        console.error('Failed to load projects:', error);
+      }
+    }
+
+    // 渲染项目列表
+    function renderProjectsList(projects) {
+      const container = document.getElementById('projects-list');
+      
+      if (Object.keys(projects).length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📁</div>
+            <p>暂无项目</p>
+            <p style="font-size: 0.9rem; margin-top: 10px;">点击右上角"新建项目"开始</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = Object.entries(projects).map(([name, project]) => {
+        const skills = project.skills || [];
+        const skillTags = skills.map(s => `<span class="skill-tag">${s}</span>`).join('');
+        
+        return `
+          <div class="project-card">
+            <div class="project-header">
+              <h3 class="project-title">📦 ${name}</h3>
+              <div class="project-actions">
+                <button onclick="editProject('${name}')" class="secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem; min-height: 36px;">✏️ 编辑</button>
+                <button onclick="deleteProject('${name}')" class="secondary danger" style="background: #fee2e2; border-color: #fca5a5; color: #991b1b; font-size: 0.85rem; padding: 0.5rem 1rem; min-height: 36px;">🗑️ 删除</button>
+              </div>
+            </div>
+            <div class="project-path">📍 ${project.path}</div>
+            <div class="project-skills">
+              <span class="project-skills-label" style="font-size: 0.9rem; color: var(--text-muted);">🔧 Skills:</span>
+              ${skillTags || '<span style="color: var(--text-muted); font-size: 0.9rem;">暂无</span>'}
+              <button onclick="quickAddSkill('${name}')" class="secondary" style="padding: 0; width: 24px; height: 24px; min-height: auto; border-radius: 50%; font-size: 14px; line-height: 1;">➕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 打开项目弹窗（新建或编辑）
+    function openProjectModal(projectName = null) {
+      currentEditProject = projectName;
+      const project = projectName ? projectsData.projects[projectName] : null;
+      const isEdit = !!projectName;
+
+      // 创建 skills 复选框列表
+      const skillsCheckboxes = availableSkills.map(skill => {
+        const isChecked = project && project.skills && project.skills.includes(skill.name);
+        return `
+          <label class="skill-checkbox-item">
+            <input type="checkbox" name="skills" value="${skill.name}" ${isChecked ? 'checked' : ''}>
+            <div class="skill-checkbox-label">
+              <div>${skill.name}</div>
+              <div class="skill-checkbox-desc">${skill.description}</div>
+            </div>
+          </label>
+        `;
+      }).join('');
+
+      const modal = document.createElement('div');
+      modal.id = 'project-modal';
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal">
+          <div class="modal-header">
+            <h2 class="modal-title">${isEdit ? '✏️ 编辑项目' : '✨ 新建项目'}</h2>
+            <button class="modal-close" onclick="closeProjectModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label>项目名称</label>
+              <input type="text" id="modal-project-name" placeholder="我的AI项目" value="${project?.name || ''}" ${isEdit ? 'disabled' : ''}>
+            </div>
+            <div class="form-group">
+              <label>项目路径</label>
+              <input type="text" id="modal-project-path" placeholder="D:\\我的项目" value="${project?.path || ''}" oninput="onProjectPathChange()">
+              <small style="color: var(--text-muted); display: block; margin-top: 5px; font-size: 0.85rem;">
+                💡 输入路径后将自动扫描已有的 skills
+              </small>
+            </div>
+            <div class="form-group">
+              <label>选择 Skills</label>
+              <div class="skills-checklist" id="modal-skills-list">
+                ${skillsCheckboxes}
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="secondary" onclick="closeProjectModal()">取消</button>
+            <button onclick="saveProject()">${isEdit ? '💾 保存修改' : '💾 创建项目'}</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    // 关闭项目弹窗
+    function closeProjectModal() {
+      const modal = document.getElementById('project-modal');
+      if (modal) modal.remove();
+      currentEditProject = null;
+    }
+
+    // 路径输入时自动扫描
+    let scanTimeout = null;
+    async function onProjectPathChange() {
+      clearTimeout(scanTimeout);
+      const projectPath = document.getElementById('modal-project-path').value.trim();
+      
+      if (!projectPath) return;
+
+      scanTimeout = setTimeout(async () => {
+        try {
+          const response = await fetch(`${API_BASE}/projects/scan`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectPath })
+          });
+
+          const data = await response.json();
+
+          if (data.success && data.skills && data.skills.length > 0) {
+            const externalSkills = [];
+            // 自动勾选扫描到的 skills
+            data.skills.forEach(skillName => {
+              const checkbox = document.querySelector(`input[name="skills"][value="${skillName}"]`);
+              if (checkbox) {
+                checkbox.checked = true;
+              } else {
+                externalSkills.push(skillName);
+              }
+            });
+
+            if (externalSkills.length > 0) {
+              addExternalSkillsToList(externalSkills, projectPath);
+              showMessage(`✅ 自动扫描到 ${data.skills.length} 个 skills (包含 ${externalSkills.length} 个外部 Skill)`, 'success');
+            } else {
+              showMessage(`✅ 自动扫描到 ${data.skills.length} 个 skills`, 'success');
+            }
+          }
+        } catch (error) {
+          console.error('Scan failed:', error);
+        }
+      }, 1000); // 1秒防抖
+    }
+
+    // 动态添加外部 skills（不在 Hub 中的）
+    function addExternalSkillsToList(externalSkills, projectPath) {
+      const container = document.getElementById('modal-skills-list');
+      if (!container) return;
+
+      externalSkills.forEach(skillName => {
+        // 检查是否已存在
+        if (document.querySelector(`input[name="skills"][value="${skillName}"]`)) return;
+
+        const item = document.createElement('label');
+        item.className = 'skill-checkbox-item';
+        item.id = `external-skill-${skillName}`;
+        item.style.borderLeft = '4px solid #f59e0b';
+        item.style.background = '#fffbeb';
+        item.innerHTML = `
+          <input type="checkbox" name="skills" value="${skillName}" checked>
+          <div class="skill-checkbox-label" style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>${skillName} <span style="color: #d97706; font-size: 0.75rem;">（项目本地）</span></span>
+              <button type="button" onclick="event.preventDefault(); event.stopPropagation(); importSkillToHub('${skillName}')" 
+                      style="padding: 4px 10px; min-height: auto; font-size: 12px; background: #f59e0b;">
+                📥 导入到 Hub
+              </button>
+            </div>
+            <div class="skill-checkbox-desc">此 skill 存在于项目中，但未在 Hub 中安装。点击导入可同步。</div>
+          </div>
+        `;
+        container.insertBefore(item, container.firstChild);
+      });
+    }
+
+    // 导入 Skill 到 Hub
+    async function importSkillToHub(skillName) {
+      const projectPath = document.getElementById('modal-project-path').value.trim();
+      if (!projectPath) {
+        showMessage('请先输入项目路径', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/skills/import`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ skillName, projectPath })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage(`✅ ${data.message}`, 'success');
+          
+          // 更新 UI：变成正常的 Hub skill
+          const item = document.getElementById(`external-skill-${skillName}`);
+          if (item) {
+            item.style.borderLeft = '';
+            item.style.background = '';
+            item.innerHTML = `
+              <input type="checkbox" name="skills" value="${skillName}" checked>
+              <div class="skill-checkbox-label">
+                <div>${skillName} <span style="color: #22c55e; font-size: 0.75rem;">✓ 已导入 Hub</span></div>
+                <div class="skill-checkbox-desc">${data.description || '已成功导入到 Hub'}</div>
+              </div>
+            `;
+          }
+
+          // 刷新全局 skills 列表
+          await loadAllSkills();
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (error) {
+        showMessage(`❌ 导入失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 保存项目
+    async function saveProject() {
+      const projectName = currentEditProject || document.getElementById('modal-project-name').value.trim();
+      const projectPath = document.getElementById('modal-project-path').value.trim();
+      const selectedSkills = Array.from(document.querySelectorAll('input[name="skills"]:checked'))
+        .map(cb => cb.value);
+
+      if (!projectName) {
+        showMessage('请输入项目名称', 'error');
+        return;
+      }
+
+      if (!projectPath) {
+        showMessage('请输入项目路径', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/projects/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: projectName,
+            path: projectPath,
+            skills: selectedSkills
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage(`✅ ${data.message}`, 'success');
+          closeProjectModal();
+          await loadProjectsList();
+          await loadStats();
+        }
+      } catch (error) {
+        showMessage(`❌ 保存失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 编辑项目
+    function editProject(projectName) {
+      openProjectModal(projectName);
+    }
+
+    // 删除项目
+    async function deleteProject(projectName) {
+      if (!confirm(`确定要删除项目 "${projectName}" 吗？\n\n注意：这只会删除配置记录，不会删除实际的文件和链接。`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/projects/${encodeURIComponent(projectName)}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage(`✅ ${data.message}`, 'success');
+          await loadProjectsList();
+          await loadStats();
+        }
+      } catch (error) {
+        showMessage(`❌ 删除失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 快速添加 skill
+    function quickAddSkill(projectName) {
+      openProjectModal(projectName);
+    }
+
+    // ========== Skills 管理功能 ==========
+
+    // 加载 Skills 管理
+    async function loadSkillsManagement() {
+      try {
+        const response = await fetch(`${API_BASE}/projects`);
+        const data = await response.json();
+
+        const container = document.getElementById('installed-skills-list');
+        container.innerHTML = '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
+
+        // 获取 skills 列表
+        const skillsResponse = await fetch(`${API_BASE}/skills`);
+        const skillsData = await skillsResponse.json();
+
+        if (skillsData.skills.length === 0) {
+          container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px;">暂无已安装的 skills</p>';
+          return;
+        }
+
+        container.innerHTML = skillsData.skills.map(skill => {
+          const usageProjects = data.skillUsage?.[skill.name] || [];
+          return `
+            <div class="skill-card">
+              <div class="skill-info">
+                <h3>${skill.name}</h3>
+                <p>${skill.description || '无描述'}</p>
+                <div class="skill-usage">
+                    <span>📦 大小: ${formatSize(skill.size)}</span>
+                    <span>🔗 被使用: ${usageProjects.length} 个项目</span>
+                </div>
+                ${usageProjects.length > 0 ? `<p class="skill-usage" style="display:block; margin-top:5px; color: var(--text-muted);">项目: ${usageProjects.join(', ')}</p>` : ''}
+              </div>
+              <div class="skill-actions">
+                <button class="secondary danger" style="background: #fee2e2; border-color: #fca5a5; color: #991b1b; padding: 0.5rem 1rem;" onclick="uninstallSkill('${skill.name}', ${usageProjects.length})">🗑️ 卸载</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        showMessage(`❌ 加载失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 卸载 skill
+    async function uninstallSkill(skillName, usageCount) {
+      if (usageCount > 0) {
+        showMessage(`❌ 无法卸载: 该 skill 正在被 ${usageCount} 个项目使用`, 'error');
+        return;
+      }
+
+      if (!confirm(`确定要卸载 "${skillName}" 吗？`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/skills/${encodeURIComponent(skillName)}/uninstall`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage(`✅ ${data.message}`, 'success');
+          await loadSkillsManagement();
+          await loadAllSkills();
+          await loadStats();
+        } else if (data.projects) {
+          showMessage(`❌ ${data.reason}: ${data.projects.join(', ')}`, 'error');
+        }
+      } catch (error) {
+        showMessage(`❌ 卸载失败: ${error.message}`, 'error');
+      }
+    }
+
+    // ========== 通用功能 ==========
+
+    // 显示消息
+    function showMessage(message, type = 'success') {
+      const area = document.getElementById('message-area');
+      area.innerHTML = `<div class="alert ${type}">${message}</div>`;
+      setTimeout(() => area.innerHTML = '', 5000);
+    }
+
+    // 格式化文件大小
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + 'B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+    }
+
+    // ========== 安装 Skills 功能（保持不变）==========
+
+    // 预览 GitHub 源
+    async function previewGithubSource() {
+      const source = document.getElementById('github-repo').value.trim();
+      if (!source) {
+        showMessage('请输入 GitHub 仓库或 skill 地址', 'error');
+        return;
+      }
+
+      const container = document.getElementById('preview-result');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>正在扫描仓库...</p></div>';
+      container.style.display = 'block';
+
+      try {
+        const response = await fetch(`${API_BASE}/skills/preview`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || '预览失败');
+        }
+
+        currentPreviewSource = source;
+
+        if (data.isSingle) {
+          const skill = data.skills[0];
+          container.innerHTML = `
+            <div class="card" style="margin-top: 20px;">
+              <h3>📦 找到 1 个 Skill</h3>
+              <div class="skill-item" style="margin: 15px 0; cursor: default; transform: none; box-shadow: none; border: 1px solid var(--border-color);">
+                <div class="skill-name">${skill.name}</div>
+                <div class="skill-desc">${skill.description}</div>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                  <button onclick="installSelectedSkills(['${skill.name}'])">✅ 直接安装</button>
+                  <button class="secondary" onclick="document.getElementById('preview-result').style.display='none'">取消</button>
+              </div>
+            </div>
+          `;
+        } else {
+          const skillsList = data.skills.map(skill => `
+            <div class="skill-item" data-name="${skill.name}" onclick="togglePreviewSkill('${skill.name}')">
+              <span class="checkbox"></span>
+              <div class="skill-name" style="margin-bottom:0.25rem;">${skill.name}</div>
+              <div class="skill-desc" style="font-size:0.85rem; margin-bottom:0;">${skill.description}</div>
+            </div>
+          `).join('');
+
+          container.innerHTML = `
+            <div class="card" style="margin-top: 20px;">
+              <h3>📦 找到 ${data.count} 个 Skills</h3>
+              <p style="color: var(--text-muted); margin-bottom: 15px;">请选择要安装的 skills：</p>
+              <div class="skills-grid">${skillsList}</div>
+              <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button onclick="installPreviewSelection()">✅ 安装选中的 (${data.count})</button>
+                <button class="secondary" onclick="document.getElementById('preview-result').style.display='none'">取消</button>
+              </div>
+            </div>
+          `;
+
+          selectedSkills.clear();
+          data.skills.forEach(s => selectedSkills.add(s.name));
+          document.querySelectorAll('#preview-result .skill-item').forEach(item => {
+            item.classList.add('selected');
+          });
+        }
+
+        showMessage(`✅ 找到 ${data.count} 个 skill(s)`, 'success');
+      } catch (error) {
+        container.innerHTML = `<div class="alert error">❌ ${error.message}</div>`;
+        showMessage(`❌ 预览失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 切换预览 skill 选择
+    function togglePreviewSkill(name) {
+      const item = document.querySelector(`#preview-result .skill-item[data-name="${name}"]`);
+
+      if (selectedSkills.has(name)) {
+        selectedSkills.delete(name);
+        item.classList.remove('selected');
+      } else {
+        selectedSkills.add(name);
+        item.classList.add('selected');
+      }
+
+      const btn = document.querySelector('#preview-result button');
+      if (btn) {
+        btn.textContent = `✅ 安装选中的 (${selectedSkills.size})`;
+      }
+    }
+
+    // 安装预览选择的 skills
+    async function installPreviewSelection() {
+      if (selectedSkills.size === 0) {
+        showMessage('请至少选择一个 skill', 'error');
+        return;
+      }
+      await installSelectedSkills(Array.from(selectedSkills));
+    }
+
+    // 安装指定的 skills
+    async function installSelectedSkills(skillNames) {
+      const source = currentPreviewSource;
+
+      document.getElementById('preview-result').style.display = 'none';
+      document.getElementById('install-progress').style.display = 'block';
+
+      try {
+        const response = await fetch(`${API_BASE}/skills/install`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source,
+            skills: skillNames
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage(`✅ ${data.message}`, 'success');
+          selectedSkills.clear();
+          currentPreviewSource = '';
+          await loadAllSkills();
+          await loadStats();
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (error) {
+        showMessage(`❌ 安装失败: ${error.message}`, 'error');
+      } finally {
+        document.getElementById('install-progress').style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
