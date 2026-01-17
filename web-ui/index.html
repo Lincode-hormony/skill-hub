@@ -638,11 +638,84 @@
         font-size: 0.9em;
         color: #0f172a;
     }
+
+    /* Skill 管理相关样式 */
+    .modal-content {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+      animation: scaleIn 0.2s ease-out;
+    }
+
+    .tag-suggestion {
+      background: white;
+      border: 2px solid #c7d2fe;
+      padding: 8px 16px;
+      border-radius: 24px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-main);
+    }
+
+    .tag-suggestion:hover {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .tag-filter-btn {
+      background: white;
+      border: 2px solid #c7d2fe;
+      padding: 8px 16px;
+      border-radius: 24px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-main);
+    }
+
+    .tag-filter-btn:hover {
+      border-color: var(--primary);
+      background: #e0e7ff;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+    }
+
+    .tag-filter-btn.active {
+      background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .skill-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .skill-tag-badge {
+      background: #e0e7ff;
+      color: #4f46e5;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
+    <div class="header" style="position: relative;">
+      <button onclick="openSettingsModal()" style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 10px 16px; border-radius: 20px; color: white; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">⚙️ 设置</button>
       <h1>🚀 Universal Skill Hub</h1>
       <p>跨工具通用 Skills 管理系统 - 支持 Claude Code, Cursor, Windsurf</p>
     </div>
@@ -722,11 +795,41 @@
     <!-- Skills 管理 -->
     <div id="skills-mgr" class="tab-content">
       <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
           <h2 style="margin: 0;">📦 已安装的 Skills</h2>
           <button class="secondary" onclick="loadSkillsManagement()">🔄 刷新列表</button>
         </div>
-        <p style="color: var(--text-muted); margin-bottom: 20px;">管理所有已安装的 skills，查看使用情况或卸载</p>
+
+        <!-- 搜索和筛选 -->
+        <div style="margin-bottom: 24px; padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%); border-radius: var(--radius-lg); border: 1px solid #c7d2fe;">
+          <!-- 搜索框 -->
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main); font-size: 0.9rem;">
+              搜索 Skills
+            </label>
+            <input type="text" id="skills-search"
+              placeholder="输入关键词搜索名称、描述或标签..."
+              style="width: 100%; padding: 12px 16px; border: 2px solid #c7d2fe; border-radius: var(--radius-md); font-size: 1rem; background: white; transition: all 0.2s;"
+              oninput="filterSkills()"
+              onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 3px rgba(99, 102, 241, 0.1)'"
+              onblur="this.style.borderColor='#c7d2fe'; this.style.boxShadow='none'">
+          </div>
+
+          <!-- 标签筛选 -->
+          <div>
+            <label style="display: block; margin-bottom: 10px; font-weight: 600; color: var(--text-main); font-size: 0.9rem;">
+              按标签筛选
+            </label>
+            <div id="tags-filter" style="display: flex; flex-wrap: wrap; gap: 10px; min-height: 44px; padding: 12px; background: white; border-radius: var(--radius-md); border: 2px dashed #c7d2fe;">
+              <!-- 标签筛选按钮会动态生成 -->
+            </div>
+            <p style="margin: 8px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">
+              提示：为 skills 添加标签后，可以点击标签快速筛选。选中多个标签时显示同时包含这些标签的 skills。
+            </p>
+          </div>
+        </div>
+
+        <p style="color: var(--text-muted); margin-bottom: 20px;">管理所有已安装的 skills，自定义名称和标签，按标签筛选</p>
         <div id="installed-skills-list" class="skills-list">
           <!-- Skills 列表会动态生成 -->
         </div>
@@ -734,6 +837,108 @@
     </div>
 
     <div id="message-area"></div>
+
+    <!-- Skill 编辑弹窗 -->
+    <div id="skill-edit-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content" style="max-width: 550px;">
+        <h3 style="margin-bottom: 24px; font-size: 1.5rem;">编辑 Skill</h3>
+
+        <div class="form-group">
+          <label style="font-weight: 600; color: var(--text-main);">原始名称</label>
+          <input type="text" id="edit-original-name" disabled
+            style="background-color: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0;">
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 600; color: var(--text-main);">显示名称</label>
+          <input type="text" id="edit-display-name" placeholder="留空则使用原始名称"
+            style="border: 2px solid #c7d2fe; transition: all 0.2s;"
+            onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 3px rgba(99, 102, 241, 0.1)'"
+            onblur="this.style.borderColor='#c7d2fe'; this.style.boxShadow='none'">
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 600; color: var(--text-main);">标签</label>
+          <input type="text" id="edit-tags" placeholder="例如: 前端 UI 常用"
+            style="border: 2px solid #c7d2fe; transition: all 0.2s;"
+            onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 3px rgba(99, 102, 241, 0.1)'"
+            onblur="this.style.borderColor='#c7d2fe'; this.style.boxShadow='none'">
+          <small style="color: var(--text-muted); display: block; margin-top: 6px;">用空格或逗号分隔多个标签</small>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 600; color: var(--text-main);">常用标签 <span style="font-weight: normal; color: var(--text-muted);">(点击添加)</span></label>
+          <div id="common-tags" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; padding: 16px; background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%); border-radius: var(--radius-md); border: 1px solid #c7d2fe;">
+            <button type="button" class="tag-suggestion" onclick="addTag('前端')">前端</button>
+            <button type="button" class="tag-suggestion" onclick="addTag('后端')">后端</button>
+            <button type="button" class="tag-suggestion" onclick="addTag('UI')">UI</button>
+            <button type="button" class="tag-suggestion" onclick="addTag('工具')">工具</button>
+            <button type="button" class="tag-suggestion" onclick="addTag('常用')">常用</button>
+            <button type="button" class="tag-suggestion" onclick="addTag('AI')">AI</button>
+            <button type="button" class="tag-suggestion" onclick="addTag('数据库')">数据库</button>
+            <button type="button" class="tag-suggestion" onclick="addTag('文档')">文档</button>
+            <button type="button" class="tag-suggestion" onclick="addTag('测试')">测试</button>
+            <button type="button" class="tag-suggestion" onclick="addTag('部署')">部署</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <button class="secondary" onclick="closeSkillEditModal()" style="padding: 0.75rem 1.5rem;">取消</button>
+          <button onclick="saveSkillEdit()" style="padding: 0.75rem 1.5rem;">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div id="settings-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content" style="max-width: 600px;">
+        <h3 style="margin-bottom: 24px; font-size: 1.5rem;">设置</h3>
+
+        <!-- 存储位置设置 -->
+        <div style="padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%); border-radius: var(--radius-lg); border: 1px solid #c7d2fe; margin-bottom: 20px;">
+          <h4 style="margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 600;">存储位置</h4>
+
+          <div class="form-group">
+            <label style="font-weight: 600; color: var(--text-main);">当前存储路径</label>
+            <input type="text" id="current-hub-root" disabled
+              style="background-color: white; color: #64748b; border: 1px solid #c7d2fe; font-family: monospace;">
+          </div>
+
+          <div class="form-group">
+            <label style="font-weight: 600; color: var(--text-main);">新存储路径</label>
+            <input type="text" id="new-hub-root" placeholder="例如: D:\MySkills 或 ~/my-skills"
+              style="border: 2px solid #c7d2fe; transition: all 0.2s;"
+              onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 3px rgba(99, 102, 241, 0.1)'"
+              onblur="this.style.borderColor='#c7d2fe'; this.style.boxShadow='none'">
+            <small style="color: var(--text-muted); display: block; margin-top: 6px;">
+              提示：支持绝对路径（如 D:\MySkills）或相对路径（如 ~/my-skills 或 ./storage）
+            </small>
+          </div>
+
+          <div style="margin-top: 16px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500;">
+              <input type="checkbox" id="migrate-data" style="width: 18px; height: 18px;">
+              <span>将现有数据迁移到新位置（推荐）</span>
+            </label>
+            <small style="color: var(--text-muted); display: block; margin-left: 26px; margin-top: 4px;">
+              勾选后会将所有已安装的 skills 和配置复制到新路径
+            </small>
+          </div>
+        </div>
+
+        <!-- 信息提示 -->
+        <div style="padding: 16px; background: #fef3c7; border-radius: var(--radius-md); border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+          <p style="margin: 0; color: #92400e; font-size: 0.9rem;">
+            <strong>注意：</strong>修改存储位置后需要重启服务器才能生效。请确保新路径有足够的磁盘空间。
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <button class="secondary" onclick="closeSettingsModal()" style="padding: 0.75rem 1.5rem;">取消</button>
+          <button onclick="saveStorageSettings()" style="padding: 0.75rem 1.5rem;">保存并重启</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -882,11 +1087,16 @@
       // 创建 skills 复选框列表
       const skillsCheckboxes = availableSkills.map(skill => {
         const isChecked = project && project.skills && project.skills.includes(skill.name);
+        // 显示格式：原始名称 (自定义备注)
+        const displayLabel = skill.displayName && skill.displayName !== skill.name
+          ? `${skill.name} <span style="color: var(--primary); font-size: 0.9em;">(${skill.displayName})</span>`
+          : skill.name;
+
         return `
           <label class="skill-checkbox-item">
             <input type="checkbox" name="skills" value="${skill.name}" ${isChecked ? 'checked' : ''}>
             <div class="skill-checkbox-label">
-              <div>${skill.name}</div>
+              <div>${displayLabel}</div>
               <div class="skill-checkbox-desc">${skill.description}</div>
             </div>
           </label>
@@ -1131,6 +1341,12 @@
 
     // ========== Skills 管理功能 ==========
 
+    // 全局状态
+    let allSkillsData = [];
+    let allTagsList = [];
+    let activeTagsFilter = new Set();
+    let currentEditingSkill = null;
+
     // 加载 Skills 管理
     async function loadSkillsManagement() {
       try {
@@ -1144,32 +1360,200 @@
         const skillsResponse = await fetch(`${API_BASE}/skills`);
         const skillsData = await skillsResponse.json();
 
-        if (skillsData.skills.length === 0) {
-          container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px;">暂无已安装的 skills</p>';
-          return;
-        }
+        // 获取所有标签
+        const tagsResponse = await fetch(`${API_BASE}/tags`);
+        const tagsData = await tagsResponse.json();
 
-        container.innerHTML = skillsData.skills.map(skill => {
-          const usageProjects = data.skillUsage?.[skill.name] || [];
-          return `
-            <div class="skill-card">
-              <div class="skill-info">
-                <h3>${skill.name}</h3>
-                <p>${skill.description || '无描述'}</p>
-                <div class="skill-usage">
-                    <span>📦 大小: ${formatSize(skill.size)}</span>
-                    <span>🔗 被使用: ${usageProjects.length} 个项目</span>
-                </div>
-                ${usageProjects.length > 0 ? `<p class="skill-usage" style="display:block; margin-top:5px; color: var(--text-muted);">项目: ${usageProjects.join(', ')}</p>` : ''}
-              </div>
-              <div class="skill-actions">
-                <button class="secondary danger" style="background: #fee2e2; border-color: #fca5a5; color: #991b1b; padding: 0.5rem 1rem;" onclick="uninstallSkill('${skill.name}', ${usageProjects.length})">🗑️ 卸载</button>
-              </div>
-            </div>
-          `;
-        }).join('');
+        allSkillsData = skillsData.skills;
+        allTagsList = tagsData.tags;
+
+        // 渲染标签筛选
+        renderTagsFilter();
+
+        // 渲染 skills 列表
+        renderSkillsList(data.skillUsage || {});
       } catch (error) {
         showMessage(`❌ 加载失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 渲染标签筛选
+    function renderTagsFilter() {
+      const container = document.getElementById('tags-filter');
+
+      // 检查是否有任何标签被激活
+      const hasActiveTag = activeTagsFilter.size > 0;
+
+      let html = `<button class="tag-filter-btn ${!hasActiveTag ? 'active' : ''}" onclick="toggleTagFilter('')" data-tag="">
+        ${!hasActiveTag ? '✓ ' : ''}全部
+      </button>`;
+
+      if (allTagsList.length === 0) {
+        container.innerHTML = html + `<span style="color: var(--text-muted); font-size: 0.9rem; padding: 8px 0;">
+          暂无标签，为 skills 添加标签后可在此筛选
+        </span>`;
+        return;
+      }
+
+      allTagsList.forEach(tag => {
+        const isActive = activeTagsFilter.has(tag);
+        html += `<button class="tag-filter-btn ${isActive ? 'active' : ''}" onclick="toggleTagFilter('${tag}')" data-tag="${tag}">
+          ${isActive ? '✓ ' : ''}#${tag}
+        </button>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // 切换标签筛选
+    function toggleTagFilter(tag) {
+      if (tag === '') {
+        activeTagsFilter.clear();
+      } else {
+        if (activeTagsFilter.has(tag)) {
+          activeTagsFilter.delete(tag);
+        } else {
+          activeTagsFilter.add(tag);
+        }
+      }
+
+      renderTagsFilter();
+      filterSkills();
+    }
+
+    // 筛选 skills
+    function filterSkills() {
+      const searchQuery = document.getElementById('skills-search').value.trim();
+
+      let filtered = allSkillsData;
+
+      // 按标签筛选
+      if (activeTagsFilter.size > 0) {
+        filtered = filtered.filter(s =>
+          Array.from(activeTagsFilter).every(t => s.tags.includes(t))
+        );
+      }
+
+      // 按关键词搜索
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(s =>
+          s.displayName.toLowerCase().includes(query) ||
+          s.name.toLowerCase().includes(query) ||
+          s.description.toLowerCase().includes(query) ||
+          s.tags.some(t => t.toLowerCase().includes(query))
+        );
+      }
+
+      // 获取项目使用数据
+      fetch(`${API_BASE}/projects`)
+        .then(res => res.json())
+        .then(data => renderSkillsList(data.skillUsage || {}, filtered));
+    }
+
+    // 渲染 skills 列表
+    function renderSkillsList(skillUsage, skills = allSkillsData) {
+      const container = document.getElementById('installed-skills-list');
+
+      if (skills.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px;">没有找到匹配的 skills</p>';
+        return;
+      }
+
+      container.innerHTML = skills.map(skill => {
+        const usageProjects = skillUsage[skill.name] || [];
+        const tagsHtml = skill.tags.length > 0
+          ? skill.tags.map(t => `<span class="skill-tag-badge">#${t}</span>`).join('')
+          : '<span style="color: var(--text-muted); font-size: 0.8rem;">无标签</span>';
+
+        // 显示名称：原始名称在前，括号是自定义名称
+        const displayName = skill.displayName !== skill.name
+          ? `${skill.name} <span style="color: var(--primary); font-weight: 500;">(${skill.displayName})</span>`
+          : skill.name;
+
+        return `
+          <div class="card" style="padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+              <div style="flex: 1;">
+                <h3 style="margin: 0; font-size: 1.1rem; margin-bottom: 8px;">${displayName}</h3>
+                <p style="color: var(--text-muted); margin: 8px 0; font-size: 0.9rem; line-height: 1.4;">${skill.description || '无描述'}</p>
+                <div class="skill-tags">${tagsHtml}</div>
+                <div style="margin-top: 12px; font-size: 0.85rem; color: var(--text-muted);">
+                  <span>📦 ${formatSize(skill.size)}</span>
+                  <span style="margin: 0 10px;">•</span>
+                  <span>🔗 ${usageProjects.length} 个项目</span>
+                  ${usageProjects.length > 0 ? `<span style="margin-left: 10px;">(${usageProjects.join(', ')})</span>` : ''}
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="openSkillEditModal('${skill.name}')">✏️ 编辑</button>
+                <button class="secondary danger" style="background: #fee2e2; border-color: #fca5a5; color: #991b1b; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="uninstallSkill('${skill.name}', ${usageProjects.length})">🗑️ 卸载</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 打开编辑弹窗
+    function openSkillEditModal(skillName) {
+      const skill = allSkillsData.find(s => s.name === skillName);
+      if (!skill) return;
+
+      currentEditingSkill = skillName;
+
+      document.getElementById('edit-original-name').value = skillName;
+      document.getElementById('edit-display-name').value = skill.displayName !== skillName ? skill.displayName : '';
+      document.getElementById('edit-tags').value = skill.tags.join(' ');
+
+      document.getElementById('skill-edit-modal').style.display = 'flex';
+    }
+
+    // 关闭编辑弹窗
+    function closeSkillEditModal() {
+      document.getElementById('skill-edit-modal').style.display = 'none';
+      currentEditingSkill = null;
+    }
+
+    // 添加标签到输入框
+    function addTag(tag) {
+      const input = document.getElementById('edit-tags');
+      const currentTags = input.value.trim().split(/\s+|,\s*/).filter(t => t);
+
+      if (!currentTags.includes(tag)) {
+        currentTags.push(tag);
+        input.value = currentTags.join(' ');
+      }
+    }
+
+    // 保存编辑
+    async function saveSkillEdit() {
+      if (!currentEditingSkill) return;
+
+      const displayName = document.getElementById('edit-display-name').value.trim();
+      const tagsInput = document.getElementById('edit-tags').value.trim();
+      const tags = tagsInput ? tagsInput.split(/\s+|,\s*/).filter(t => t) : [];
+
+      try {
+        const response = await fetch(`${API_BASE}/skills/${currentEditingSkill}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ displayName, tags })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage(`✅ ${data.message}`, 'success');
+          closeSkillEditModal();
+          await loadSkillsManagement();
+          await loadAllSkills();
+          await loadStats();
+        } else {
+          showMessage(`❌ 保存失败: ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showMessage(`❌ 保存失败: ${error.message}`, 'error');
       }
     }
 
@@ -1218,6 +1602,68 @@
       if (bytes < 1024) return bytes + 'B';
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
       return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+    }
+
+    // ========== 设置功能 ==========
+
+    // 打开设置弹窗
+    async function openSettingsModal() {
+      try {
+        const response = await fetch(`${API_BASE}/settings`);
+        const settings = await response.json();
+
+        document.getElementById('current-hub-root').value = settings.hubRoot;
+        document.getElementById('new-hub-root').value = '';
+        document.getElementById('migrate-data').checked = true;
+
+        document.getElementById('settings-modal').style.display = 'flex';
+      } catch (error) {
+        showMessage(`❌ 加载设置失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 关闭设置弹窗
+    function closeSettingsModal() {
+      document.getElementById('settings-modal').style.display = 'none';
+    }
+
+    // 保存存储设置
+    async function saveStorageSettings() {
+      const newHubRoot = document.getElementById('new-hub-root').value.trim();
+      const migrate = document.getElementById('migrate-data').checked;
+
+      if (!newHubRoot) {
+        showMessage('❌ 请输入新的存储路径', 'error');
+        return;
+      }
+
+      if (!confirm(`确定要将存储位置更改为:\n${newHubRoot}\n\n${migrate ? '现有数据将被迁移到新位置' : '现有数据不会被迁移，请手动处理'}\n\n更改后需要重启服务器。是否继续？`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/settings/storage`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newHubRoot, migrate })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          closeSettingsModal();
+          showMessage(`✅ ${data.message}`, 'success');
+
+          // 显示重启提示
+          setTimeout(() => {
+            alert('设置已保存！\n\n请按以下步骤重启服务器：\n1. 在运行服务器的终端按 Ctrl + C 停止\n2. 运行 npm start 重新启动\n\n重启后将使用新的存储位置。');
+          }, 500);
+        } else {
+          showMessage(`❌ ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showMessage(`❌ 保存失败: ${error.message}`, 'error');
+      }
     }
 
     // ========== 安装 Skills 功能（保持不变）==========

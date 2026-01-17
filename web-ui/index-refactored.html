@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚀 Universal Skill Hub</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <button class="settings-btn" onclick="settings.openModal()">⚙️ 设置</button>
+      <h1>🚀 Universal Skill Hub</h1>
+      <p>跨工具通用 Skills 管理系统 - 支持 Claude Code, Cursor, Windsurf</p>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="install">
+        <span>📦</span> 安装 Skills
+      </div>
+      <div class="tab" data-tab="manage">
+        <span>📁</span> 项目管理
+      </div>
+      <div class="tab" data-tab="skills-mgr">
+        <span>⚙️</span> Skills 管理
+      </div>
+    </div>
+
+    <!-- 安装 Skills -->
+    <div id="install" class="tab-content active">
+      <div class="card">
+        <h2>从 GitHub 安装 Skills</h2>
+        <div class="form-group">
+          <label>GitHub 仓库或 Skill 地址</label>
+          <div style="display: flex; gap: 10px;">
+            <input type="text" id="github-repo" placeholder="anthropics/skills" value="anthropics/skills" style="flex: 1;">
+            <button onclick="installation.preview()">🔍 预览 Skills</button>
+          </div>
+          <small style="color: var(--text-muted); margin-top: 8px; display: block;">
+            支持格式：
+            <code>owner/repo</code>（整个仓库）、
+            <code>owner/repo/skills/name</code>（子路径）、
+            或完整 GitHub URL
+          </small>
+        </div>
+      </div>
+
+      <div id="preview-result" style="display: none;">
+        <!-- 预览结果会显示在这里 -->
+      </div>
+
+      <div id="install-progress" style="display: none;">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>正在安装 skills...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 项目管理 -->
+    <div id="manage" class="tab-content">
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-number" id="stat-skills">-</div>
+          <div class="stat-label">Skills</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="stat-projects">-</div>
+          <div class="stat-label">项目</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="stat-links">-</div>
+          <div class="stat-label">配置</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0;">📁 我的项目</h2>
+          <button onclick="projects.openModal()">➕ 新建项目</button>
+        </div>
+
+        <div id="projects-list">
+          <!-- 项目列表动态生成 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills 管理 -->
+    <div id="skills-mgr" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <h2 style="margin: 0;">📦 已安装的 Skills</h2>
+          <button class="secondary" onclick="skillsManagement.load()">🔄 刷新列表</button>
+        </div>
+
+        <!-- 搜索和筛选 -->
+        <div style="margin-bottom: 24px; padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%); border-radius: var(--radius-lg); border: 1px solid #c7d2fe;">
+          <!-- 搜索框 -->
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main); font-size: 0.9rem;">
+              搜索 Skills
+            </label>
+            <input type="text" id="skills-search"
+              placeholder="输入关键词搜索名称、描述或标签..."
+              style="width: 100%; padding: 12px 16px; border: 2px solid #c7d2fe; border-radius: var(--radius-md); font-size: 1rem; background: white;"
+              oninput="skillsManagement.filter()">
+          </div>
+
+          <!-- 标签筛选 -->
+          <div>
+            <label style="display: block; margin-bottom: 10px; font-weight: 600; color: var(--text-main); font-size: 0.9rem;">
+              按标签筛选
+            </label>
+            <div id="tags-filter" style="display: flex; flex-wrap: wrap; gap: 10px; min-height: 44px; padding: 12px; background: white; border-radius: var(--radius-md); border: 2px dashed #c7d2fe;">
+              <!-- 标签筛选按钮会动态生成 -->
+            </div>
+            <p style="margin: 8px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">
+              提示：为 skills 添加标签后，可以点击标签快速筛选。选中多个标签时显示同时包含这些标签的 skills。
+            </p>
+          </div>
+        </div>
+
+        <p style="color: var(--text-muted); margin-bottom: 20px;">管理所有已安装的 skills，自定义名称和标签，按标签筛选</p>
+        <div id="installed-skills-list" class="skills-list">
+          <!-- Skills 列表会动态生成 -->
+        </div>
+      </div>
+    </div>
+
+    <div id="message-area"></div>
+
+    <!-- Skill 编辑弹窗 -->
+    <div id="skill-edit-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content" style="max-width: 550px;">
+        <h3 style="margin-bottom: 24px; font-size: 1.5rem;">编辑 Skill</h3>
+
+        <div class="form-group">
+          <label style="font-weight: 600; color: var(--text-main);">原始名称</label>
+          <input type="text" id="edit-original-name" disabled>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 600; color: var(--text-main);">显示名称</label>
+          <input type="text" id="edit-display-name" placeholder="留空则使用原始名称"
+            style="border: 2px solid #c7d2fe;">
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 600; color: var(--text-main);">标签</label>
+          <input type="text" id="edit-tags" placeholder="例如: 前端 UI 常用"
+            style="border: 2px solid #c7d2fe;">
+          <small style="color: var(--text-muted); display: block; margin-top: 6px;">用空格或逗号分隔多个标签</small>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 600; color: var(--text-main);">
+            常用标签 <span style="font-weight: normal; color: var(--text-muted);">(点击添加)</span>
+          </label>
+          <div id="common-tags" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; padding: 16px; background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%); border-radius: var(--radius-md); border: 1px solid #c7d2fe;">
+            <button type="button" class="tag-suggestion" onclick="skillsManagement.addTag('前端')">前端</button>
+            <button type="button" class="tag-suggestion" onclick="skillsManagement.addTag('后端')">后端</button>
+            <button type="button" class="tag-suggestion" onclick="skillsManagement.addTag('UI')">UI</button>
+            <button type="button" class="tag-suggestion" onclick="skillsManagement.addTag('工具')">工具</button>
+            <button type="button" class="tag-suggestion" onclick="skillsManagement.addTag('常用')">常用</button>
+            <button type="button" class="tag-suggestion" onclick="skillsManagement.addTag('AI')">AI</button>
+            <button type="button" class="tag-suggestion" onclick="skillsManagement.addTag('数据库')">数据库</button>
+            <button type="button" class="tag-suggestion" onclick="skillsManagement.addTag('文档')">文档</button>
+            <button type="button" class="tag-suggestion" onclick="skillsManagement.addTag('测试')">测试</button>
+            <button type="button" class="tag-suggestion" onclick="skillsManagement.addTag('部署')">部署</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <button class="secondary" onclick="skillsManagement.closeEditModal()">取消</button>
+          <button onclick="skillsManagement.saveEdit()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div id="settings-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content" style="max-width: 600px;">
+        <h3 style="margin-bottom: 24px; font-size: 1.5rem;">设置</h3>
+
+        <!-- 存储位置设置 -->
+        <div style="padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%); border-radius: var(--radius-lg); border: 1px solid #c7d2fe; margin-bottom: 20px;">
+          <h4 style="margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 600;">存储位置</h4>
+
+          <div class="form-group">
+            <label style="font-weight: 600; color: var(--text-main);">当前存储路径</label>
+            <input type="text" id="current-hub-root" disabled
+              style="background-color: white; color: #64748b; border: 1px solid #c7d2fe; font-family: monospace;">
+          </div>
+
+          <div class="form-group">
+            <label style="font-weight: 600; color: var(--text-main);">新存储路径</label>
+            <input type="text" id="new-hub-root" placeholder="例如: D:\MySkills 或 ~/my-skills"
+              style="border: 2px solid #c7d2fe;">
+            <small style="color: var(--text-muted); display: block; margin-top: 6px;">
+              提示：支持绝对路径（如 D:\MySkills）或相对路径（如 ~/my-skills 或 ./storage）
+            </small>
+          </div>
+
+          <div style="margin-top: 16px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500;">
+              <input type="checkbox" id="migrate-data" style="width: 18px; height: 18px;">
+              <span>将现有数据迁移到新位置（推荐）</span>
+            </label>
+            <small style="color: var(--text-muted); display: block; margin-left: 26px; margin-top: 4px;">
+              勾选后会将所有已安装的 skills 和配置复制到新路径
+            </small>
+          </div>
+        </div>
+
+        <!-- 信息提示 -->
+        <div style="padding: 16px; background: #fef3c7; border-radius: var(--radius-md); border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+          <p style="margin: 0; color: #92400e; font-size: 0.9rem;">
+            <strong>注意：</strong>修改存储位置后需要重启服务器才能生效。请确保新路径有足够的磁盘空间。
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <button class="secondary" onclick="settings.closeModal()">取消</button>
+          <button onclick="settings.saveStorage()">保存并重启</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

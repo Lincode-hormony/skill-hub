@@ -9,12 +9,52 @@
 
 const express = require('express');
 const cors = require('cors');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const util = require('util');
-const execPromise = util.promisify(exec);
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
+
+// 改进的 exec 函数，继承完整的环境变量
+function execPromise(command, options = {}) {
+  return new Promise((resolve, reject) => {
+    const env = { ...process.env, ...options.env };
+
+    const proc = spawn(command, [], {
+      ...options,
+      env,
+      shell: true,
+      windowsHide: true
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    proc.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    proc.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    proc.on('close', (code) => {
+      if (code === 0) {
+        resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
+      } else {
+        const error = new Error(stderr || `Command failed with exit code ${code}`);
+        error.exitCode = code;
+        error.stdout = stdout;
+        error.stderr = stderr;
+        reject(error);
+      }
+    });
+
+    proc.on('error', (err) => {
+      reject(err);
+    });
+  });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -81,11 +121,19 @@ async function ensureHubStructure() {
 }
 
 /**
- * API: 获取所有已安装的 skills
+ * API: 获取所有已安装的 skills（支持标签筛选和搜索）
  */
 app.get('/api/skills', async (req, res) => {
   try {
+    const { tags, q } = req.query;
     const skills = [];
+
+    // 读取 registry 获取自定义信息
+    let registryData = { skills: {} };
+    try {
+      const registryContent = await fs.readFile(CONFIG.registryFile, 'utf-8');
+      registryData = JSON.parse(registryContent);
+    } catch {}
 
     // 扫描 skills 目录
     const entries = await fs.readdir(CONFIG.skillsDir, { withFileTypes: true });
@@ -100,9 +148,14 @@ app.get('/api/skills', async (req, res) => {
           const descMatch = content.match(/description: (.+)/);
           const size = await getDirectorySize(skillPath);
 
+          // 获取自定义信息
+          const customInfo = registryData.skills[entry.name] || {};
+
           skills.push({
             name: entry.name,
+            displayName: customInfo.displayName || entry.name,
             description: descMatch ? descMatch[1].trim() : '无描述',
+            tags: customInfo.tags || [],
             size,
             path: skillPath,
           });
@@ -112,8 +165,209 @@ app.get('/api/skills', async (req, res) => {
       }
     }
 
-    res.json({ skills: skills.sort((a, b) => a.name.localeCompare(b.name)) });
+    // 筛选
+    let filtered = skills;
+
+    // 按标签筛选
+    if (tags) {
+      const filterTags = tags.split(',');
+      filtered = filtered.filter(s =>
+        filterTags.some(t => s.tags.includes(t))
+      );
+    }
+
+    // 按关键词搜索
+    if (q) {
+      const query = q.toLowerCase();
+      filtered = filtered.filter(s =>
+        s.displayName.toLowerCase().includes(query) ||
+        s.name.toLowerCase().includes(query) ||
+        s.description.toLowerCase().includes(query) ||
+        s.tags.some(t => t.toLowerCase().includes(query))
+      );
+    }
+
+    res.json({ skills: filtered.sort((a, b) => a.displayName.localeCompare(b.displayName)) });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: 更新 skill 的自定义名称和标签
+ */
+app.put('/api/skills/:name', async (req, res) => {
+  const { name } = req.params;
+  const { displayName, tags } = req.body;
+
+  try {
+    log(`\n🏷️ 更新 skill: ${name}`, '\x1b[33m');
+
+    // 读取 registry
+    const registryContent = await fs.readFile(CONFIG.registryFile, 'utf-8');
+    const registry = JSON.parse(registryContent);
+
+    // 确保 skill 存在
+    if (!registry.skills[name]) {
+      registry.skills[name] = {};
+    }
+
+    // 更新自定义信息
+    if (displayName !== undefined) {
+      registry.skills[name].displayName = displayName;
+    }
+    if (tags !== undefined) {
+      registry.skills[name].tags = tags;
+    }
+
+    // 保存 registry
+    await fs.writeFile(CONFIG.registryFile, JSON.stringify(registry, null, 2));
+
+    log(`✓ 更新成功: ${displayName || name} (${tags?.join(', ') || '无标签'})`, '\x1b[32m');
+
+    res.json({
+      success: true,
+      message: `Skill "${name}" 已更新`
+    });
+  } catch (error) {
+    log(`✗ 更新失败: ${error.message}`, '\x1b[31m');
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: 获取所有标签
+ */
+app.get('/api/tags', async (req, res) => {
+  try {
+    const tags = new Set();
+
+    // 读取 registry
+    try {
+      const registryContent = await fs.readFile(CONFIG.registryFile, 'utf-8');
+      const registry = JSON.parse(registryContent);
+
+      // 收集所有标签
+      Object.values(registry.skills || {}).forEach(skill => {
+        (skill.tags || []).forEach(tag => tags.add(tag));
+      });
+    } catch {}
+
+    res.json({
+      tags: Array.from(tags).sort()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: 获取设置
+ */
+app.get('/api/settings', async (req, res) => {
+  try {
+    const settings = {
+      hubRoot: CONFIG.hubRoot,
+      skillsDir: CONFIG.skillsDir,
+      projectsFile: CONFIG.projectsFile,
+      registryFile: CONFIG.registryFile,
+    };
+
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: 更新存储位置
+ */
+app.put('/api/settings/storage', async (req, res) => {
+  const { newHubRoot, migrate } = req.body;
+
+  if (!newHubRoot) {
+    return res.status(400).json({ error: '需要指定新的存储路径' });
+  }
+
+  try {
+    // 展开路径中的 ~
+    let expandedPath = newHubRoot;
+    if (newHubRoot.startsWith('~/')) {
+      expandedPath = path.join(os.homedir(), newHubRoot.substring(2));
+    } else if (newHubRoot === '~') {
+      expandedPath = os.homedir();
+    }
+
+    log(`\n⚙️ 更新存储位置...`, '\x1b[33m');
+    log(`当前路径: ${CONFIG.hubRoot}`, '\x1b[36m');
+    log(`新路径: ${expandedPath}`, '\x1b[36m');
+
+    // 检查新路径是否可写
+    try {
+      await fs.mkdir(expandedPath, { recursive: true });
+      await fs.access(expandedPath, fs.constants.W_OK);
+    } catch (error) {
+      return res.status(400).json({ error: `无法访问新路径: ${error.message}` });
+    }
+
+    // 如果需要迁移
+    if (migrate) {
+      log('开始迁移数据...', '\x1b[36m');
+
+      const oldSkillsDir = CONFIG.skillsDir;
+      const oldRegistryFile = CONFIG.registryFile;
+      const oldProjectsDir = path.join(CONFIG.hubRoot, 'projects');
+
+      const newSkillsDir = path.join(expandedPath, 'skills');
+      const newRegistryFile = path.join(expandedPath, 'registry.json');
+      const newProjectsDir = path.join(expandedPath, 'projects');
+
+      // 创建新目录结构
+      await fs.mkdir(newSkillsDir, { recursive: true });
+      await fs.mkdir(newProjectsDir, { recursive: true });
+
+      // 迁移 skills
+      const oldSkills = await fs.readdir(oldSkillsDir);
+      for (const skill of oldSkills) {
+        const oldPath = path.join(oldSkillsDir, skill);
+        const newPath = path.join(newSkillsDir, skill);
+        const stat = await fs.stat(oldPath);
+        if (stat.isDirectory()) {
+          // 递归复制目录
+          await copyDirectory(oldPath, newPath);
+        } else {
+          await fs.copyFile(oldPath, newPath);
+        }
+        log(`✓ 复制: ${skill}`, '\x1b[32m');
+      }
+
+      // 迁移 registry
+      const registryContent = await fs.readFile(oldRegistryFile, 'utf-8');
+      await fs.writeFile(newRegistryFile, registryContent);
+
+      // 迁移 projects
+      const oldProjectsManifest = path.join(oldProjectsDir, 'project-manifest.json');
+      try {
+        const projectsContent = await fs.readFile(oldProjectsManifest, 'utf-8');
+        await fs.writeFile(path.join(newProjectsDir, 'project-manifest.json'), projectsContent);
+      } catch {}
+
+      log('✅ 数据迁移完成', '\x1b[32m');
+    }
+
+    // 更新配置文件（在原 hub root 创建 .hub-config.json）
+    const configPath = path.join(CONFIG.hubRoot, '.hub-config.json');
+    await fs.writeFile(configPath, JSON.stringify({ hubRoot: expandedPath, updatedAt: new Date().toISOString() }, null, 2));
+
+    log(`✅ 配置已更新，请重启服务器以应用新路径`, '\x1b[32m');
+
+    res.json({
+      success: true,
+      message: '存储位置已更新，请重启服务器',
+      needsRestart: true
+    });
+  } catch (error) {
+    log(`✗ 更新失败: ${error.message}`, '\x1b[31m');
     res.status(500).json({ error: error.message });
   }
 });
