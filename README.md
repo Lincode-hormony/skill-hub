@@ -29,8 +29,8 @@
 
 ```powershell
 # 克隆项目
-git clone https://github.com/你的用户名/universal-skill-hub.git
-cd universal-skill-hub
+git clone https://github.com/Lincode-hormony/skill-hub.git
+cd skill-hub
 
 # 安装依赖
 npm install
@@ -47,8 +47,8 @@ npm start
 
 ```bash
 # 克隆项目
-git clone https://github.com/你的用户名/universal-skill-hub.git
-cd universal-skill-hub
+git clone https://github.com/Lincode-hormony/skill-hub.git
+cd skill-hub
 
 # 安装依赖
 npm install
