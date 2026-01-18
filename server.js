@@ -57,7 +57,7 @@ function execPromise(command, options = {}) {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // 跨平台默认路径
 const getDefaultHubRoot = () => {
@@ -257,6 +257,87 @@ app.get('/api/tags', async (req, res) => {
       tags: Array.from(tags).sort()
     });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: 获取标签及其关联的 skills 数量
+ */
+app.get('/api/tags/stats', async (req, res) => {
+  try {
+    const tagStats = new Map();
+
+    // 读取 registry
+    try {
+      const registryContent = await fs.readFile(CONFIG.registryFile, 'utf-8');
+      const registry = JSON.parse(registryContent);
+
+      // 统计每个标签的 skills 数量
+      Object.entries(registry.skills || {}).forEach(([skillName, skillData]) => {
+        (skillData.tags || []).forEach(tag => {
+          tagStats.set(tag, (tagStats.get(tag) || 0) + 1);
+        });
+      });
+    } catch {}
+
+    // 转换为数组并排序
+    const tags = Array.from(tagStats.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count); // 按数量降序排序
+
+    res.json({ tags });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: 批量更新多个 skills 的标签
+ */
+app.put('/api/skills/batch/tags', async (req, res) => {
+  const { skillNames, tags } = req.body;
+
+  if (!Array.isArray(skillNames) || skillNames.length === 0) {
+    return res.status(400).json({ error: '需要提供 skill 名称列表' });
+  }
+
+  if (!Array.isArray(tags) || tags.length === 0) {
+    return res.status(400).json({ error: '需要提供至少一个标签' });
+  }
+
+  try {
+    log(`\n🏷️ 批量更新标签: ${skillNames.length} 个 skills, 标签: ${tags.join(', ')}`, '\x1b[33m');
+
+    // 读取 registry
+    const registryContent = await fs.readFile(CONFIG.registryFile, 'utf-8');
+    const registry = JSON.parse(registryContent);
+
+    let updatedCount = 0;
+
+    // 批量更新标签（追加模式）
+    skillNames.forEach(name => {
+      if (registry.skills[name]) {
+        const existingTags = registry.skills[name].tags || [];
+        // 合并标签，去重
+        const allTags = new Set([...existingTags, ...tags]);
+        registry.skills[name].tags = Array.from(allTags);
+        updatedCount++;
+      }
+    });
+
+    // 保存 registry
+    await fs.writeFile(CONFIG.registryFile, JSON.stringify(registry, null, 2));
+
+    log(`✓ 批量更新成功: ${updatedCount} 个 skills`, '\x1b[32m');
+
+    res.json({
+      success: true,
+      updated: updatedCount,
+      message: `已为 ${updatedCount} 个 skills 添加标签`
+    });
+  } catch (error) {
+    log(`✗ 批量更新失败: ${error.message}`, '\x1b[31m');
     res.status(500).json({ error: error.message });
   }
 });
