@@ -1149,24 +1149,92 @@
       const project = projectName ? projectsData.projects[projectName] : null;
       const isEdit = !!projectName;
 
-      // 创建 skills 复选框列表
-      const skillsCheckboxes = availableSkills.map(skill => {
-        const isChecked = project && project.skills && project.skills.includes(skill.name);
-        // 显示格式：原始名称 (自定义备注)
-        const displayLabel = skill.displayName && skill.displayName !== skill.name
-          ? `${skill.name} <span style="color: var(--primary); font-size: 0.9em;">(${skill.displayName})</span>`
-          : skill.name;
+      // 按标签分组 skills
+      const skillsByTag = new Map();
+      const skillsWithoutTag = [];
 
-        return `
-          <label class="skill-checkbox-item">
-            <input type="checkbox" name="skills" value="${skill.name}" ${isChecked ? 'checked' : ''}>
-            <div class="skill-checkbox-label">
-              <div>${displayLabel}</div>
-              <div class="skill-checkbox-desc">${skill.description}</div>
+      availableSkills.forEach(skill => {
+        const tags = skill.tags || [];
+        if (tags.length === 0) {
+          skillsWithoutTag.push(skill);
+        } else {
+          // 使用第一个标签作为主要分组标签
+          const primaryTag = tags[0];
+          if (!skillsByTag.has(primaryTag)) {
+            skillsByTag.set(primaryTag, []);
+          }
+          skillsByTag.get(primaryTag).push(skill);
+        }
+      });
+
+      // 创建按标签分组的 skills 复选框列表
+      let skillsCheckboxes = '';
+
+      // 先显示有标签的分组
+      skillsByTag.forEach((skills, tagName) => {
+        const tagSkills = skills.map(skill => {
+          const isChecked = project && project.skills && project.skills.includes(skill.name);
+          const displayLabel = skill.displayName && skill.displayName !== skill.name
+            ? `${skill.name} <span style="color: var(--primary); font-size: 0.9em;">(${skill.displayName})</span>`
+            : skill.name;
+
+          return `
+            <label class="skill-checkbox-item">
+              <input type="checkbox" name="skills" value="${skill.name}" ${isChecked ? 'checked' : ''}>
+              <div class="skill-checkbox-label">
+                <div>${displayLabel}</div>
+                <div class="skill-checkbox-desc">${skill.description}</div>
+              </div>
+            </label>
+          `;
+        }).join('');
+
+        skillsCheckboxes += `
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0;">
+              <span style="font-size: 1.1rem; margin-right: 8px;">🏷️</span>
+              <span style="font-weight: 600; color: var(--primary);">${tagName}</span>
+              <span style="color: var(--text-muted); font-size: 0.9rem; margin-left: 8px;">(${skills.length})</span>
             </div>
-          </label>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              ${tagSkills}
+            </div>
+          </div>
         `;
-      }).join('');
+      });
+
+      // 再显示没有标签的 skills
+      if (skillsWithoutTag.length > 0) {
+        const untaggedSkills = skillsWithoutTag.map(skill => {
+          const isChecked = project && project.skills && project.skills.includes(skill.name);
+          const displayLabel = skill.displayName && skill.displayName !== skill.name
+            ? `${skill.name} <span style="color: var(--primary); font-size: 0.9em;">(${skill.displayName})</span>`
+            : skill.name;
+
+          return `
+            <label class="skill-checkbox-item">
+              <input type="checkbox" name="skills" value="${skill.name}" ${isChecked ? 'checked' : ''}>
+              <div class="skill-checkbox-label">
+                <div>${displayLabel}</div>
+                <div class="skill-checkbox-desc">${skill.description}</div>
+              </div>
+            </label>
+          `;
+        }).join('');
+
+        skillsCheckboxes += `
+          <div>
+            <div style="display: flex; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0;">
+              <span style="font-size: 1.1rem; margin-right: 8px;">📦</span>
+              <span style="font-weight: 600; color: var(--text-muted);">未分类</span>
+              <span style="color: var(--text-muted); font-size: 0.9rem; margin-left: 8px;">(${skillsWithoutTag.length})</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              ${untaggedSkills}
+            </div>
+          </div>
+        `;
+      }
 
       const modal = document.createElement('div');
       modal.id = 'project-modal';
