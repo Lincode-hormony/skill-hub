@@ -115,6 +115,46 @@ npm start
 
 ---
 
+## 🔄 更新 Skill Hub
+
+当有新版本发布时，按以下步骤更新：
+
+### Windows 用户
+
+```powershell
+# 进入项目目录
+cd skill-hub
+
+# 拉取最新代码
+git pull origin main
+
+# 更新依赖（如果有新依赖）
+npm install
+
+# 重启服务
+npm start
+```
+
+### Mac / Linux 用户
+
+```bash
+# 进入项目目录
+cd skill-hub
+
+# 拉取最新代码
+git pull origin main
+
+# 更新依赖（如果有新依赖）
+npm install
+
+# 重启服务
+npm start
+```
+
+> **提示**：更新不会影响已安装的 Skills 和项目配置，所有数据都会保留。
+
+---
+
 ## ✨ 功能特性
 
 ### 🏷️ 标签管理

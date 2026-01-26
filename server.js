@@ -882,6 +882,103 @@ app.post('/api/projects/scan', async (req, res) => {
 });
 
 /**
+ * API: 健康检查 - 检测项目和 skills 的同步状态
+ */
+app.get('/api/health/check', async (req, res) => {
+  try {
+    log(`\n🔍 执行健康检查...`, '\x1b[33m');
+
+    // 读取项目配置
+    const manifestPath = CONFIG.projectsFile;
+    const content = await fs.readFile(manifestPath, 'utf-8');
+    const manifest = JSON.parse(content);
+
+    const healthReport = {
+      projects: {},
+      timestamp: new Date().toISOString()
+    };
+
+    // 检查每个项目
+    for (const [projectName, project] of Object.entries(manifest.projects || {})) {
+      const projectPath = project.path;
+      const configuredSkills = project.skills || [];
+
+      // 检查项目路径是否存在
+      let pathExists = false;
+      try {
+        await fs.access(projectPath);
+        pathExists = true;
+      } catch {
+        pathExists = false;
+      }
+
+      // 如果路径存在，检查 skills 同步状态
+      const missingSkills = [];
+      const extraSkills = [];
+
+      if (pathExists) {
+        const projectSkillsDir = path.join(projectPath, '.claude', 'skills');
+
+        // 检查配置中的 skills 是否在项目中存在
+        for (const skillName of configuredSkills) {
+          const skillPath = path.join(projectSkillsDir, skillName);
+          try {
+            await fs.access(skillPath);
+          } catch {
+            missingSkills.push(skillName);
+          }
+        }
+
+        // 检查项目中是否有未在配置中的 skills
+        try {
+          const entries = await fs.readdir(projectSkillsDir, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.isDirectory() || entry.isSymbolicLink()) {
+              const skillMdPath = path.join(projectSkillsDir, entry.name, 'SKILL.md');
+              try {
+                await fs.access(skillMdPath);
+                if (!configuredSkills.includes(entry.name)) {
+                  extraSkills.push(entry.name);
+                }
+              } catch {
+                // 不是有效的 skill
+              }
+            }
+          }
+        } catch {
+          // .claude/skills 目录不存在
+        }
+      }
+
+      // 确定项目状态
+      let status = 'valid';
+      if (!pathExists) {
+        status = 'invalid';
+      } else if (missingSkills.length > 0 || extraSkills.length > 0) {
+        status = 'partial';
+      }
+
+      healthReport.projects[projectName] = {
+        status,
+        pathExists,
+        missingSkills,
+        extraSkills,
+        configuredSkills
+      };
+
+      log(`✓ ${projectName}: ${status}`, status === 'valid' ? '\x1b[32m' : '\x1b[33m');
+    }
+
+    log(`✅ 健康检查完成\n`, '\x1b[32m');
+
+    res.json(healthReport);
+  } catch (error) {
+    log(`✗ 健康检查失败: ${error.message}\n`, '\x1b[31m');
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * API: 保存或更新项目配置（简化版）
  */
 app.post('/api/projects/save', async (req, res) => {

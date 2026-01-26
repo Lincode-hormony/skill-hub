@@ -783,7 +783,12 @@
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
           <h2 style="margin: 0;">📁 我的项目</h2>
-          <button onclick="openProjectModal()">➕ 新建项目</button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button onclick="refreshHealthStatus()" class="secondary" style="display: flex; align-items: center; gap: 0.5rem;">
+              🔄 刷新状态
+            </button>
+            <button onclick="openProjectModal()">➕ 新建项目</button>
+          </div>
         </div>
         
         <div id="projects-list">
@@ -1090,10 +1095,26 @@
     // ========== 项目管理功能（重构版）==========
 
     let currentEditProject = null;
+    let healthData = null; // 存储健康检查数据
+
+    // 执行健康检查
+    async function checkHealth() {
+      try {
+        const response = await fetch(`${API_BASE}/health/check`);
+        healthData = await response.json();
+        return healthData;
+      } catch (error) {
+        console.error('Health check failed:', error);
+        return null;
+      }
+    }
 
     // 加载并渲染项目列表
     async function loadProjectsList() {
       try {
+        // 先执行健康检查
+        await checkHealth();
+
         const response = await fetch(`${API_BASE}/projects`);
         const data = await response.json();
         projectsData = data;
@@ -1122,21 +1143,57 @@
       container.innerHTML = Object.entries(projects).map(([name, project]) => {
         const skills = project.skills || [];
         const skillTags = skills.map(s => `<span class="skill-tag">${s}</span>`).join('');
-        
+
+        // 获取健康状态
+        const health = healthData?.projects?.[name];
+        let statusBadge = '';
+        let warningMessage = '';
+
+        if (health) {
+          if (health.status === 'invalid') {
+            statusBadge = '<span style="background: #fee2e2; color: #991b1b; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600;">⚠️ 路径失效</span>';
+            warningMessage = `<div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 0.75rem; margin-top: 0.75rem; border-radius: 0.25rem;">
+              <p style="color: #991b1b; font-size: 0.9rem; margin: 0;"><strong>⚠️ 项目路径不存在</strong></p>
+              <p style="color: #991b1b; font-size: 0.85rem; margin: 0.25rem 0 0 0;">该项目文件夹已被外部删除</p>
+              <button onclick="removeInvalidProject('${name}')" class="secondary" style="margin-top: 0.5rem; font-size: 0.85rem; padding: 0.4rem 0.8rem; background: white; border-color: #991b1b; color: #991b1b;">从列表中移除</button>
+            </div>`;
+          } else if (health.status === 'partial') {
+            statusBadge = '<span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600;">⚠️ 需要同步</span>';
+
+            const issues = [];
+            if (health.missingSkills?.length > 0) {
+              issues.push(`<p style="margin: 0.25rem 0;"><strong>已删除:</strong> ${health.missingSkills.join(', ')}</p>`);
+            }
+            if (health.extraSkills?.length > 0) {
+              issues.push(`<p style="margin: 0.25rem 0;"><strong>未配置:</strong> ${health.extraSkills.join(', ')}</p>`);
+            }
+
+            warningMessage = `<div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 0.75rem; margin-top: 0.75rem; border-radius: 0.25rem;">
+              <p style="color: #92400e; font-size: 0.9rem; margin: 0;"><strong>⚠️ Skills 不同步</strong></p>
+              <div style="color: #92400e; font-size: 0.85rem; margin-top: 0.25rem;">${issues.join('')}</div>
+              <button onclick="syncProjectSkills('${name}')" class="secondary" style="margin-top: 0.5rem; font-size: 0.85rem; padding: 0.4rem 0.8rem; background: white; border-color: #92400e; color: #92400e;">更新配置</button>
+            </div>`;
+          }
+        }
+
         return `
-          <div class="project-card">
+          <div class="project-card" style="${health?.status === 'invalid' ? 'opacity: 0.7; border-color: #fca5a5;' : ''}">
             <div class="project-header">
-              <h3 class="project-title">📦 ${name}</h3>
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <h3 class="project-title">📦 ${name}</h3>
+                ${statusBadge}
+              </div>
               <div class="project-actions">
-                <button onclick="editProject('${name}')" class="secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem; min-height: 36px;">✏️ 编辑</button>
+                <button onclick="editProject('${name}')" class="secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem; min-height: 36px;" ${health?.status === 'invalid' ? 'disabled' : ''}>✏️ 编辑</button>
                 <button onclick="deleteProject('${name}')" class="secondary danger" style="background: #fee2e2; border-color: #fca5a5; color: #991b1b; font-size: 0.85rem; padding: 0.5rem 1rem; min-height: 36px;">🗑️ 删除</button>
               </div>
             </div>
             <div class="project-path">📍 ${project.path}</div>
+            ${warningMessage}
             <div class="project-skills">
               <span class="project-skills-label" style="font-size: 0.9rem; color: var(--text-muted);">🔧 Skills:</span>
               ${skillTags || '<span style="color: var(--text-muted); font-size: 0.9rem;">暂无</span>'}
-              <button onclick="quickAddSkill('${name}')" class="secondary" style="padding: 0; width: 24px; height: 24px; min-height: auto; border-radius: 50%; font-size: 14px; line-height: 1;">➕</button>
+              <button onclick="quickAddSkill('${name}')" class="secondary" style="padding: 0; width: 24px; height: 24px; min-height: auto; border-radius: 50%; font-size: 14px; line-height: 1;" ${health?.status === 'invalid' ? 'disabled' : ''}>➕</button>
             </div>
           </div>
         `;
@@ -1588,6 +1645,92 @@
     // 快速添加 skill
     function quickAddSkill(projectName) {
       openProjectModal(projectName);
+    }
+
+    // 移除失效的项目
+    async function removeInvalidProject(projectName) {
+      if (!confirm(`确定要从列表中移除项目 "${projectName}" 吗？\n\n该项目的文件夹已被外部删除，移除后将清除配置记录。`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/projects/${encodeURIComponent(projectName)}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage(`✅ 已移除失效项目: ${projectName}`, 'success');
+          await loadProjectsList();
+          await loadStats();
+        }
+      } catch (error) {
+        showMessage(`❌ 移除失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 同步项目 skills 配置
+    async function syncProjectSkills(projectName) {
+      const health = healthData?.projects?.[projectName];
+      if (!health) return;
+
+      const project = projectsData.projects[projectName];
+      if (!project) return;
+
+      // 构建提示信息
+      let message = `检测到以下变更:\n\n`;
+      if (health.missingSkills?.length > 0) {
+        message += `已删除的 Skills (将从配置中移除):\n${health.missingSkills.map(s => `  - ${s}`).join('\n')}\n\n`;
+      }
+      if (health.extraSkills?.length > 0) {
+        message += `未配置的 Skills (将添加到配置):\n${health.extraSkills.map(s => `  + ${s}`).join('\n')}\n\n`;
+      }
+      message += `是否更新配置？`;
+
+      if (!confirm(message)) {
+        return;
+      }
+
+      try {
+        // 计算新的 skills 列表
+        const currentSkills = new Set(project.skills || []);
+
+        // 移除已删除的
+        health.missingSkills?.forEach(s => currentSkills.delete(s));
+
+        // 添加新发现的
+        health.extraSkills?.forEach(s => currentSkills.add(s));
+
+        const newSkills = Array.from(currentSkills);
+
+        // 保存更新后的配置
+        const response = await fetch(`${API_BASE}/projects/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: projectName,
+            path: project.path,
+            skills: newSkills
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage(`✅ 配置已更新`, 'success');
+          await loadProjectsList();
+        }
+      } catch (error) {
+        showMessage(`❌ 更新失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 手动刷新健康状态
+    async function refreshHealthStatus() {
+      showMessage('🔄 正在检查项目状态...', 'info');
+      await loadProjectsList();
+      showMessage('✅ 检查完成', 'success');
     }
 
     // ========== Skills 管理功能 ==========
