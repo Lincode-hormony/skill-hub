@@ -1,0 +1,24 @@
+node_modules/
+.env
+*.log
+temp/
+dist/
+.claude/
+.codegraph/
+.hub-config.json
+backups/
+skills-hub/
+.DS_Store
+Thumbs.db
+.worktrees/
+
+# Runtime data and local Skill inventory
+skills/
+registry.json
+projects/
+
+# Local desktop launcher assets
+SkillHubLauncher.cs
+SkillHubLauncher.exe
+web-ui/skill-hub.ico
+*.lnk
