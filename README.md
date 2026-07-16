@@ -38,12 +38,25 @@ irm https://raw.githubusercontent.com/Lincode-hormony/skill-hub/main/install.ps1
 安装器会：
 
 1. 将程序安装到 `%LOCALAPPDATA%\SkillHub\app`。
-2. 将用户 Skills、标签和项目配置存放到 `%LOCALAPPDATA%\SkillHub\data`。
+2. 将用户 Skills、标签和项目配置存放到 `%USERPROFILE%\SkillLibrary`。
 3. 使用 `npm ci --omit=dev` 安装固定版本的运行依赖。
 4. 创建桌面快捷方式。
 5. 启动服务并打开 `http://localhost:3001`。
 
-程序与数据目录相互独立，更新程序不会覆盖已管理的 Skills。
+程序与 Skill 库相互独立，更新或卸载程序都不会删除已经整理好的 Skills。
+
+### 首次使用必须接管
+
+首次打开时，主界面会保持锁定。阅读操作说明并勾选“我已了解”后，点击“一键接管并开始使用”。
+
+接管会：
+
+- 识别 Codex 与 Claude Code 的个人 Skill 目录。
+- 将普通 Skill 校验后迁入统一 Skill 库。
+- 把原安装位置改为指向 Skill 库的目录链接。
+- 恢复重装前保存的平台和项目连接。
+
+系统 Skill、供应 Skill和插件 Skill不会接管；同名不同内容不会覆盖；失败时会恢复原目录。首次接管完成前不能进入其他管理功能。
 
 如不希望直接执行远程脚本，可以先下载并检查：
 
@@ -63,6 +76,23 @@ irm https://raw.githubusercontent.com/Lincode-hormony/skill-hub/main/install.ps1
 
 安装器使用 `git pull --ff-only`，发现安装目录存在本地修改时会停止，不会自动覆盖。
 
+## 干净卸载
+
+运行：
+
+```powershell
+& "$env:LOCALAPPDATA\SkillHub\app\uninstall.ps1"
+```
+
+卸载前会明确列出操作并要求确认。确认后会：
+
+- 停止由 Skill Hub 启动的后台服务。
+- 删除桌面快捷方式、安装清单、运行状态和程序目录。
+- 删除 Codex、Claude Code 与项目中由 Hub 创建的目录链接。
+- 保留 `%USERPROFILE%\SkillLibrary` 中已经整理好的 Skills、标签和项目记录。
+
+卸载后不会留下 Skill Hub 的程序或连接痕迹，Skill 库仍是独立、可复用的用户资产。重新安装后需再次确认一键接管，系统会根据保留的连接偏好恢复平台与项目连接。
+
 ## 手动运行
 
 ```powershell
@@ -75,7 +105,7 @@ npm ci
 手动启动脚本默认使用：
 
 - 服务地址：`http://localhost:3001`
-- 数据目录：`%LOCALAPPDATA%\SkillHub\data`
+- Skill 库：`%USERPROFILE%\SkillLibrary`
 
 也可以直接运行开发服务器。此时默认把当前仓库作为数据目录：
 
@@ -127,6 +157,8 @@ npm start
 
 - `skills/`
 - `registry.json`
+- `connections.json`
+- `onboarding.json`
 - `projects/`
 - `.hub-config.json`
 - 日志、临时目录和备份

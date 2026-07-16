@@ -1,6 +1,7 @@
 param(
   [string]$AppRoot = (Split-Path -Parent $PSScriptRoot),
-  [string]$DataRoot = (Join-Path $env:LOCALAPPDATA 'SkillHub\data'),
+  [string]$DataRoot = (Join-Path $HOME 'SkillLibrary'),
+  [string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'SkillHub'),
   [int]$Port = 3001,
   [switch]$NoBrowser
 )
@@ -32,6 +33,8 @@ if (-not (Test-Path -LiteralPath (Join-Path $AppRoot 'node_modules'))) {
 }
 
 New-Item -ItemType Directory -Path $DataRoot -Force | Out-Null
+New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
+$runtimeFile = Join-Path $StateRoot 'runtime.json'
 
 if (-not (Test-SkillHub)) {
   $nodePath = (Get-Command node -ErrorAction Stop).Source
@@ -43,10 +46,19 @@ if (-not (Test-SkillHub)) {
   $startInfo.CreateNoWindow = $true
   $startInfo.EnvironmentVariables['PORT'] = [string]$Port
   $startInfo.EnvironmentVariables['HUB_ROOT'] = $DataRoot
+  $startInfo.EnvironmentVariables['SKILL_HUB_STATE_ROOT'] = $StateRoot
 
   $process = New-Object System.Diagnostics.Process
   $process.StartInfo = $startInfo
   [void]$process.Start()
+
+  @{
+    pid = $process.Id
+    port = $Port
+    appRoot = $AppRoot
+    dataRoot = $DataRoot
+    startedAt = (Get-Date).ToUniversalTime().ToString('o')
+  } | ConvertTo-Json | Set-Content -LiteralPath $runtimeFile -Encoding utf8
 
   $ready = $false
   for ($attempt = 0; $attempt -lt 30; $attempt++) {
@@ -66,4 +78,4 @@ if (-not $NoBrowser) {
 }
 
 Write-Host "Skill Hub is running: $url" -ForegroundColor Green
-Write-Host "Data directory: $DataRoot" -ForegroundColor DarkGray
+Write-Host "Skill library: $DataRoot" -ForegroundColor DarkGray

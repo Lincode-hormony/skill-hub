@@ -67,11 +67,15 @@ const getDefaultHubRoot = () => {
 
 // 配置
 const HUB_ROOT = process.env.HUB_ROOT || getDefaultHubRoot();
+const STATE_ROOT = process.env.SKILL_HUB_STATE_ROOT || HUB_ROOT;
 const CONFIG = {
   hubRoot: HUB_ROOT,
+  stateRoot: STATE_ROOT,
   skillsDir: path.join(HUB_ROOT, 'skills'),
   projectsFile: path.join(HUB_ROOT, 'projects', 'project-manifest.json'),
   registryFile: path.join(HUB_ROOT, 'registry.json'),
+  connectionsFile: path.join(HUB_ROOT, 'connections.json'),
+  onboardingFile: path.join(STATE_ROOT, 'onboarding.json'),
 };
 
 app.use(cors());
@@ -108,6 +112,7 @@ async function writeJsonFile(filePath, data) {
 async function ensureHubStructure() {
   const dirs = [
     CONFIG.hubRoot,
+    CONFIG.stateRoot,
     CONFIG.skillsDir,
     path.join(CONFIG.hubRoot, 'projects'),
     path.join(CONFIG.hubRoot, 'web-ui'),
@@ -136,6 +141,18 @@ async function ensureHubStructure() {
     await fs.access(registryPath);
   } catch {
     await fs.writeFile(registryPath, JSON.stringify({ skills: {} }, null, 2));
+  }
+
+  try {
+    await fs.access(CONFIG.connectionsFile);
+  } catch {
+    await fs.writeFile(CONFIG.connectionsFile, JSON.stringify({ skills: {} }, null, 2));
+  }
+
+  try {
+    await fs.access(CONFIG.onboardingFile);
+  } catch {
+    await fs.writeFile(CONFIG.onboardingFile, JSON.stringify({ completed: false }, null, 2));
   }
 }
 
@@ -1186,6 +1203,9 @@ app.put('/api/skills/:name/clients/:client', async (req, res) => {
     }
 
     const status = await getClientPlatformStatus(skillName, clientLocation);
+    const connections = await readJsonFile(CONFIG.connectionsFile, { skills: {} });
+    setConnectionPreference(connections, skillName, client, enabled);
+    await writeJsonFile(CONFIG.connectionsFile, connections);
     res.json({
       success: true,
       status,
@@ -1323,10 +1343,11 @@ app.post('/api/skills/import', async (req, res) => {
  * A successful adoption leaves one real copy in the Hub and replaces the
  * original client directory with a verified directory link.
  */
-app.post('/api/skills/scan-installed', async (req, res) => {
-  try {
+async function scanInstalledSkillsAndAdopt() {
     const locations = getInstalledSkillLocations();
     const registry = await readJsonFile(CONFIG.registryFile, { skills: {} });
+    const connections = await readJsonFile(CONFIG.connectionsFile, { skills: {} });
+    const restoredLinks = await restorePreferredClientLinks(connections);
     const legacySystemCleanup = await reconcileLegacySystemCopies(registry);
     const hubIndex = await buildHubSkillIndex();
     const adopted = [];
@@ -1337,6 +1358,7 @@ app.post('/api/skills/scan-installed', async (req, res) => {
     const failures = [];
     const scannedLocations = [];
     let registryChanged = legacySystemCleanup.changed;
+    let connectionsChanged = false;
 
     for (const location of locations) {
       const discovery = await findInstalledSkills(location);
@@ -1355,6 +1377,17 @@ app.post('/api/skills/scan-installed', async (req, res) => {
       systemSkills.push(...discovery.system.map(skill => ({ ...skill, location: location.id })));
       alreadyManaged.push(...discovery.managed.map(skill => ({ ...skill, location: location.id })));
       externalLinks.push(...discovery.externalLinks.map(skill => ({ ...skill, location: location.id })));
+
+      for (const managedSkill of discovery.managed) {
+        if (managedSkill.targetPath && isPathInside(managedSkill.targetPath, CONFIG.skillsDir)) {
+          connectionsChanged = setConnectionPreference(
+            connections,
+            path.basename(managedSkill.targetPath),
+            location.client === 'claude-code' ? 'claude' : location.client,
+            true
+          ) || connectionsChanged;
+        }
+      }
 
       for (const skill of discovery.skills) {
         const source = {
@@ -1397,6 +1430,12 @@ app.post('/api/skills/scan-installed', async (req, res) => {
             sources,
           };
           registryChanged = true;
+          connectionsChanged = setConnectionPreference(
+            connections,
+            managedName,
+            location.client === 'claude-code' ? 'claude' : location.client,
+            true
+          ) || connectionsChanged;
 
           if (!managedSkill) {
             const indexedSkill = { name: managedName, fingerprint: skill.fingerprint, path: targetPath };
@@ -1419,9 +1458,12 @@ app.post('/api/skills/scan-installed', async (req, res) => {
     if (registryChanged) {
       await writeJsonFile(CONFIG.registryFile, registry);
     }
+    if (connectionsChanged) {
+      await writeJsonFile(CONFIG.connectionsFile, connections);
+    }
 
     log(`Scanned installed skills: ${adopted.length} adopted, ${alreadyManaged.length} managed, ${conflicts.length} conflicts, ${failures.length} failures`, '\x1b[36m');
-    res.json({
+    return {
       success: true,
       adopted,
       alreadyManaged,
@@ -1431,13 +1473,93 @@ app.post('/api/skills/scan-installed', async (req, res) => {
       externalLinks,
       conflicts,
       failures,
+      restoredLinks: restoredLinks.restored,
+      restoreSkipped: restoredLinks.skipped,
       locations: scannedLocations,
       // Keep the old fields for older clients during the transition.
       imported: adopted.filter(item => !item.reusedExisting),
       duplicates: adopted.filter(item => item.reusedExisting),
-    });
+    };
+}
+
+async function restoreManagedProjectLinks() {
+  const manifest = await readJsonFile(CONFIG.projectsFile, { projects: {} });
+  const restored = [];
+  const skipped = [];
+
+  for (const [projectName, project] of Object.entries(manifest.projects || {})) {
+    if (!project.path || !(await resolvePath(project.path))) {
+      skipped.push({ project: projectName, reason: 'project_missing' });
+      continue;
+    }
+
+    const configuredSkills = new Set(Array.isArray(project.skills) ? project.skills : []);
+    for (const skills of Object.values(project.tools || {})) {
+      if (Array.isArray(skills)) skills.forEach(skill => configuredSkills.add(skill));
+    }
+
+    const projectSkillsDir = path.join(project.path, '.claude', 'skills');
+    await fs.mkdir(projectSkillsDir, { recursive: true });
+    for (const skillName of configuredSkills) {
+      const sourcePath = path.join(CONFIG.skillsDir, skillName);
+      const linkPath = path.join(projectSkillsDir, skillName);
+      if (!(await resolvePath(sourcePath))) {
+        skipped.push({ project: projectName, name: skillName, reason: 'skill_missing' });
+        continue;
+      }
+
+      try {
+        const existingTarget = await resolvePath(linkPath);
+        if (existingTarget) {
+          if (isSamePath(existingTarget, sourcePath)) continue;
+          skipped.push({ project: projectName, name: skillName, reason: 'path_occupied' });
+          continue;
+        }
+        await createDirectoryLink(sourcePath, linkPath);
+        restored.push({ project: projectName, name: skillName, path: linkPath });
+      } catch (error) {
+        skipped.push({ project: projectName, name: skillName, reason: error.message });
+      }
+    }
+  }
+
+  return { restored, skipped };
+}
+
+app.post('/api/skills/scan-installed', async (req, res) => {
+  try {
+    res.json(await scanInstalledSkillsAndAdopt());
   } catch (error) {
     log(`Installed skill scan failed: ${error.message}`, '\x1b[31m');
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/onboarding/adopt', async (req, res) => {
+  if (req.body?.acknowledged !== true) {
+    return res.status(400).json({ error: '请先确认已了解接管操作' });
+  }
+
+  try {
+    const result = await scanInstalledSkillsAndAdopt();
+    const projectLinks = await restoreManagedProjectLinks();
+    const summary = {
+      adopted: result.adopted.length,
+      alreadyManaged: result.alreadyManaged.length,
+      conflicts: result.conflicts.length,
+      failures: result.failures.length,
+      systemSkills: result.systemSkills.length,
+      restoredClientLinks: result.restoredLinks.length,
+      restoredProjectLinks: projectLinks.restored.length,
+    };
+    await writeJsonFile(CONFIG.onboardingFile, {
+      completed: true,
+      completedAt: new Date().toISOString(),
+      summary,
+    });
+    res.json({ ...result, projectLinks, onboardingCompleted: true });
+  } catch (error) {
+    log(`Onboarding adoption failed: ${error.message}`, '\x1b[31m');
     res.status(500).json({ error: error.message });
   }
 });
@@ -1515,6 +1637,46 @@ function getClientSkillLocations() {
       ],
     },
   };
+}
+
+function setConnectionPreference(connections, skillName, client, enabled) {
+  if (!connections.skills) connections.skills = {};
+  if (!connections.skills[skillName]) connections.skills[skillName] = {};
+  const previous = connections.skills[skillName][client] === true;
+  connections.skills[skillName][client] = enabled === true;
+  return previous !== (enabled === true);
+}
+
+async function restorePreferredClientLinks(connections) {
+  const restored = [];
+  const skipped = [];
+  const platforms = getClientSkillLocations();
+
+  for (const [skillName, preferences] of Object.entries(connections.skills || {})) {
+    const sourcePath = path.join(CONFIG.skillsDir, skillName);
+    if (!(await resolvePath(sourcePath))) continue;
+
+    for (const [client, enabled] of Object.entries(preferences || {})) {
+      if (enabled !== true || !platforms[client]) continue;
+      const platform = platforms[client];
+      const status = await getClientPlatformStatus(skillName, platform);
+      if (status.status === 'managed') continue;
+      if (status.status !== 'missing') {
+        skipped.push({ name: skillName, client, reason: status.status });
+        continue;
+      }
+
+      const linkPath = path.join(platform.primaryPath, skillName);
+      try {
+        await createDirectoryLink(sourcePath, linkPath);
+        restored.push({ name: skillName, client, path: linkPath });
+      } catch (error) {
+        skipped.push({ name: skillName, client, reason: error.message });
+      }
+    }
+  }
+
+  return { restored, skipped };
 }
 
 async function getClientLinkStatuses(skillName) {
@@ -1898,6 +2060,15 @@ async function resolvePath(targetPath) {
     return null;
   }
 }
+
+app.get('/api/onboarding', async (req, res) => {
+  const state = await readJsonFile(CONFIG.onboardingFile, { completed: false });
+  res.json({
+    completed: state.completed === true,
+    completedAt: state.completedAt || null,
+    summary: state.summary || null,
+  });
+});
 
 /**
  * 辅助函数：复制目录

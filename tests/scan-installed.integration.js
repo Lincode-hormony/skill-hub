@@ -59,6 +59,7 @@ async function main() {
   const codexProvidedSkills = path.join(fakeHome, '.codex', 'vendor_imports', 'skills');
   const claudeSkills = path.join(fakeHome, '.claude', 'skills');
   const externalTarget = path.join(fixtureRoot, 'external', 'external-link');
+  const projectRoot = path.join(fixtureRoot, 'project');
   const port = await getFreePort();
   const baseUrl = `http://127.0.0.1:${port}`;
   let child;
@@ -97,6 +98,13 @@ async function main() {
       }),
       'utf8'
     );
+    await fs.mkdir(path.join(hubRoot, 'projects'), { recursive: true });
+    await fs.mkdir(projectRoot, { recursive: true });
+    await fs.writeFile(
+      path.join(hubRoot, 'projects', 'project-manifest.json'),
+      JSON.stringify({ projects: { Demo: { path: projectRoot, skills: ['alpha'] } } }),
+      'utf8'
+    );
 
     child = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
       cwd: path.join(__dirname, '..'),
@@ -115,7 +123,14 @@ async function main() {
     child.stderr.on('data', chunk => { stderr += chunk.toString(); });
     await waitForServer(baseUrl, child);
 
-    const scan = await requestJson(`${baseUrl}/api/skills/scan-installed`, { method: 'POST' });
+    const initialOnboarding = await requestJson(`${baseUrl}/api/onboarding`);
+    assert.equal(initialOnboarding.completed, false);
+
+    const scan = await requestJson(`${baseUrl}/api/onboarding/adopt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acknowledged: true }),
+    });
     assert.equal(scan.adopted.length, 2, 'both client copies should be adopted as links');
     assert.equal(scan.systemSkills.length, 2, 'system and vendor-provided skills should only be counted');
     assert.equal(scan.removedSystemCopies.length, 2, 'unchanged legacy system copies should be removed from the Hub');
@@ -140,6 +155,8 @@ async function main() {
       'Codex-provided skills must remain untouched'
     );
     assert.equal((await fs.lstat(path.join(codexSkills, 'conflict'))).isSymbolicLink(), false);
+    assert.equal((await fs.lstat(path.join(projectRoot, '.claude', 'skills', 'alpha'))).isSymbolicLink(), true);
+    assert.equal((await requestJson(`${baseUrl}/api/onboarding`)).completed, true);
 
     const skills = await requestJson(`${baseUrl}/api/skills`);
     const alpha = skills.skills.find(skill => skill.name === 'alpha');
@@ -157,6 +174,15 @@ async function main() {
     });
     assert.equal((await fs.lstat(path.join(sharedAgentSkills, 'connect-me'))).isSymbolicLink(), true);
     await assert.rejects(fs.lstat(path.join(codexSkills, 'connect-me')));
+
+    await fs.unlink(path.join(sharedAgentSkills, 'connect-me'));
+    const restore = await requestJson(`${baseUrl}/api/onboarding/adopt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acknowledged: true }),
+    });
+    assert(restore.restoredLinks.some(link => link.name === 'connect-me' && link.client === 'codex'));
+    assert.equal((await fs.lstat(path.join(sharedAgentSkills, 'connect-me'))).isSymbolicLink(), true);
 
     await requestJson(`${baseUrl}/api/skills/alpha/clients/claude`, {
       method: 'PUT',

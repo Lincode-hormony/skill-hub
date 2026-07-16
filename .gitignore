@@ -15,6 +15,8 @@ Thumbs.db
 # Runtime data and local Skill inventory
 skills/
 registry.json
+connections.json
+onboarding.json
 projects/
 
 # Local desktop launcher assets

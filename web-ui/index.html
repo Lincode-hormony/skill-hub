@@ -527,6 +527,151 @@
       animation: scaleIn 0.2s ease-out;
     }
 
+    .onboarding-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 5000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      background: rgba(15, 23, 42, 0.72);
+    }
+
+    .onboarding-dialog {
+      width: 100%;
+      max-width: 680px;
+      min-width: 0;
+      max-height: calc(100vh - 2.5rem);
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 1.75rem;
+      border-radius: 8px;
+      background: white;
+      box-shadow: 0 24px 64px rgba(15, 23, 42, 0.3);
+    }
+
+    .onboarding-kicker {
+      color: var(--primary);
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .onboarding-dialog h1 {
+      margin: 0.35rem 0 0.55rem;
+      font-size: 1.7rem;
+      line-height: 1.25;
+    }
+
+    .onboarding-dialog > p {
+      color: var(--text-muted);
+    }
+
+    .onboarding-actions-list {
+      display: grid;
+      gap: 0;
+      margin: 1.25rem 0;
+      border-block: 1px solid var(--border-color);
+    }
+
+    .onboarding-action-row {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 0.7rem;
+      padding: 0.8rem 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .onboarding-action-row:last-child {
+      border-bottom: 0;
+    }
+
+    .onboarding-action-row strong,
+    .onboarding-action-row span {
+      display: block;
+    }
+
+    .onboarding-action-row span {
+      margin-top: 0.15rem;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+    }
+
+    .onboarding-ack {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.85rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+      cursor: pointer;
+    }
+
+    .onboarding-ack input {
+      width: 18px;
+      height: 18px;
+      margin-top: 0.1rem;
+      flex: 0 0 auto;
+    }
+
+    .onboarding-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 1rem;
+    }
+
+    .onboarding-footer button {
+      max-width: 100%;
+      white-space: normal;
+    }
+
+    .onboarding-result {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.9rem;
+      border: 1px solid #86efac;
+      border-radius: 6px;
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .onboarding-error {
+      border-color: #fca5a5;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    @media (max-width: 600px) {
+      .onboarding-gate {
+        align-items: stretch;
+        padding: 0.75rem;
+      }
+
+      .onboarding-dialog {
+        max-height: calc(100vh - 1.5rem);
+        padding: 1.1rem;
+      }
+
+      .onboarding-dialog h1 {
+        font-size: 1.35rem;
+      }
+
+      .onboarding-action-row {
+        grid-template-columns: 22px minmax(0, 1fr);
+        gap: 0.45rem;
+      }
+
+      .onboarding-ack {
+        font-size: 0.88rem;
+      }
+
+      .onboarding-footer button {
+        width: 100%;
+      }
+    }
+
     @keyframes scaleIn {
         from { transform: scale(0.95); opacity: 0; }
         to { transform: scale(1); opacity: 1; }
@@ -993,6 +1138,42 @@
   </style>
 </head>
 <body>
+  <div id="onboarding-gate" class="onboarding-gate">
+    <div class="onboarding-dialog" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+      <span class="onboarding-kicker">首次使用</span>
+      <h1 id="onboarding-title">先接管本机 Skills，再开始使用</h1>
+      <p>Skill Hub 只有成为普通 Skill 的统一来源后才有意义。接管会整理现有安装，并让 Codex 与 Claude Code 从统一 Skill 库读取。</p>
+
+      <div class="onboarding-actions-list">
+        <div class="onboarding-action-row">
+          <strong>1</strong>
+          <div><strong>识别</strong><span>检查 Codex 与 Claude Code 的个人 Skill 目录，区分普通内容、系统内容、外部链接和冲突。</span></div>
+        </div>
+        <div class="onboarding-action-row">
+          <strong>2</strong>
+          <div><strong>整理</strong><span>普通 Skill 经完整校验后迁入统一 Skill 库，相同内容只保留一份。</span></div>
+        </div>
+        <div class="onboarding-action-row">
+          <strong>3</strong>
+          <div><strong>连接</strong><span>原安装位置改为指向 Skill 库的连接；重装时会恢复你此前选择的平台和项目连接。</span></div>
+        </div>
+        <div class="onboarding-action-row">
+          <strong>4</strong>
+          <div><strong>保护</strong><span>系统与插件 Skill 不会接管；同名不同内容不会覆盖；失败时原目录会恢复。</span></div>
+        </div>
+      </div>
+
+      <label id="onboarding-ack-row" class="onboarding-ack">
+        <input id="onboarding-ack" type="checkbox" onchange="updateOnboardingButton()">
+        <span>我已了解：普通 Skill 会迁入统一 Skill 库，原位置改为连接；冲突项和系统内容会保持原样。</span>
+      </label>
+
+      <div id="onboarding-result" class="onboarding-result"></div>
+      <div class="onboarding-footer">
+        <button id="onboarding-action" type="button" disabled onclick="runOnboardingAdoption()">一键接管并开始使用</button>
+      </div>
+    </div>
+  </div>
   <div class="container">
     <div class="header" style="position: relative;">
       <button onclick="openSettingsModal()" style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 10px 16px; border-radius: 20px; color: white; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">⚙️ 设置</button>
@@ -1325,6 +1506,7 @@
     let currentPreviewSource = '';
     let projectsData = {};
     let currentProject = null;
+    let appInitialized = false;
 
     // 工具配置
     const TOOLS = {
@@ -1357,11 +1539,81 @@
       });
     });
 
-    // 页面加载时自动加载
-    window.addEventListener('load', async () => {
+    async function initializeApp() {
+      if (appInitialized) return;
+      appInitialized = true;
       await loadAllSkills();
       await loadStats();
+    }
+
+    window.addEventListener('load', async () => {
+      try {
+        const response = await fetch(`${API_BASE}/onboarding`);
+        const state = await response.json();
+        if (!response.ok) throw new Error(state.error || '无法读取首次使用状态');
+        if (state.completed) {
+          document.getElementById('onboarding-gate').style.display = 'none';
+          await initializeApp();
+        }
+      } catch (error) {
+        const result = document.getElementById('onboarding-result');
+        result.className = 'onboarding-result onboarding-error';
+        result.style.display = 'block';
+        result.textContent = `初始化失败：${error.message}`;
+      }
     });
+
+    function updateOnboardingButton() {
+      const acknowledged = document.getElementById('onboarding-ack').checked;
+      document.getElementById('onboarding-action').disabled = !acknowledged;
+    }
+
+    async function runOnboardingAdoption() {
+      const acknowledged = document.getElementById('onboarding-ack').checked;
+      if (!acknowledged) return;
+
+      const button = document.getElementById('onboarding-action');
+      const result = document.getElementById('onboarding-result');
+      button.disabled = true;
+      button.textContent = '正在接管...';
+      result.className = 'onboarding-result';
+      result.style.display = 'block';
+      result.textContent = '正在识别、校验并整理本机 Skills，请不要关闭页面。';
+
+      try {
+        const response = await fetch(`${API_BASE}/onboarding/adopt`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ acknowledged: true })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || '接管失败');
+
+        const restoredProjects = data.projectLinks?.restored?.length || 0;
+        result.className = 'onboarding-result';
+        result.innerHTML = `
+          <strong>接管完成</strong>
+          <div style="margin-top: 6px; font-size: 0.88rem;">
+            接管 ${data.adopted.length} 个，已有托管 ${data.alreadyManaged.length} 个，恢复平台连接 ${data.restoredLinks.length} 个，恢复项目连接 ${restoredProjects} 个。
+            ${data.conflicts.length ? `保留 ${data.conflicts.length} 个内容冲突待处理。` : ''}
+            ${data.failures.length ? `${data.failures.length} 个接管失败，原目录已保留或恢复。` : ''}
+          </div>`;
+        document.getElementById('onboarding-ack-row').style.display = 'none';
+        button.disabled = false;
+        button.textContent = '进入 Skill Hub';
+        button.onclick = enterSkillHub;
+      } catch (error) {
+        result.className = 'onboarding-result onboarding-error';
+        result.textContent = `接管未完成：${error.message}`;
+        button.disabled = false;
+        button.textContent = '重新接管';
+      }
+    }
+
+    async function enterSkillHub() {
+      document.getElementById('onboarding-gate').style.display = 'none';
+      await initializeApp();
+    }
 
     // 加载所有 skills
     async function loadAllSkills() {
