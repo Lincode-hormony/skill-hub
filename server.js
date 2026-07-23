@@ -78,6 +78,11 @@ const CONFIG = {
   onboardingFile: path.join(STATE_ROOT, 'onboarding.json'),
 };
 
+const SYSTEM_SKILL_ROOTS = [
+  path.join(os.homedir(), '.codex', 'vendor_imports', 'skills', 'skills', '.curated'),
+  path.join(os.homedir(), '.codex', 'skills', '.system'),
+];
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'web-ui')));
@@ -91,6 +96,23 @@ function stripBom(content) {
 
 function parseJson(content) {
   return JSON.parse(stripBom(content));
+}
+
+async function getSystemSkillNames() {
+  const names = new Set();
+
+  for (const root of SYSTEM_SKILL_ROOTS) {
+    try {
+      const entries = await fs.readdir(root, { withFileTypes: true });
+      entries
+        .filter(entry => entry.isDirectory() || entry.isSymbolicLink())
+        .forEach(entry => names.add(entry.name));
+    } catch {
+      // A missing optional Codex system-skill root is expected on some machines.
+    }
+  }
+
+  return names;
 }
 
 async function readJsonFile(filePath, fallback) {
@@ -163,6 +185,7 @@ app.get('/api/skills', async (req, res) => {
   try {
     const { tags, q } = req.query;
     const skills = [];
+    const systemSkillNames = await getSystemSkillNames();
 
     // 读取 registry 获取自定义信息
     const registryData = await readJsonFile(CONFIG.registryFile, { skills: {} });
@@ -171,7 +194,7 @@ app.get('/api/skills', async (req, res) => {
     const entries = await fs.readdir(CONFIG.skillsDir, { withFileTypes: true });
 
     for (const entry of entries) {
-      if (entry.isDirectory()) {
+      if (entry.isDirectory() && !systemSkillNames.has(entry.name)) {
         const skillPath = path.join(CONFIG.skillsDir, entry.name);
         const skillMdPath = path.join(skillPath, 'SKILL.md');
 
@@ -194,6 +217,7 @@ app.get('/api/skills', async (req, res) => {
             path: skillPath,
             managed: true,
             clientLinks,
+            allowImplicitInvocation: await getSkillImplicitInvocation(skillPath, customInfo),
           });
         } catch (error) {
           // 跳过无效的 skill
@@ -234,7 +258,7 @@ app.get('/api/skills', async (req, res) => {
  */
 app.put('/api/skills/:name', async (req, res) => {
   const { name } = req.params;
-  const { displayName, tags } = req.body;
+  const { displayName, tags, allowImplicitInvocation } = req.body;
 
   try {
     log(`\n🏷️ 更新 skill: ${name}`, '\x1b[33m');
@@ -253,6 +277,16 @@ app.put('/api/skills/:name', async (req, res) => {
     }
     if (tags !== undefined) {
       registry.skills[name].tags = tags;
+    }
+
+    if (allowImplicitInvocation !== undefined) {
+      if (typeof allowImplicitInvocation !== 'boolean') {
+        return res.status(400).json({ error: 'allowImplicitInvocation must be a boolean' });
+      }
+
+      const skillPath = getSkillPath(name);
+      await setSkillImplicitInvocation(skillPath, allowImplicitInvocation);
+      registry.skills[name].allowImplicitInvocation = allowImplicitInvocation;
     }
 
     // 保存 registry
@@ -2115,16 +2149,82 @@ async function getDirectorySize(dirPath) {
 /**
  * 辅助函数：更新 skill registry
  */
+/**
+ * Resolve a skill path without allowing the API name to escape the skills directory.
+ */
+function getSkillPath(skillName) {
+  if (!skillName || path.basename(skillName) !== skillName) {
+    throw new Error('Invalid skill name');
+  }
+
+  return path.join(CONFIG.skillsDir, skillName);
+}
+
+/**
+ * Read the Codex invocation policy from a skill's optional metadata file.
+ * Missing policy keeps Codex's default behavior: implicit invocation enabled.
+ */
+async function getSkillImplicitInvocation(skillPath, registryEntry = {}) {
+  if (typeof registryEntry.allowImplicitInvocation === 'boolean') {
+    return registryEntry.allowImplicitInvocation;
+  }
+
+  const metadataPath = path.join(skillPath, 'agents', 'openai.yaml');
+  try {
+    const content = await fs.readFile(metadataPath, 'utf-8');
+    const match = content.match(/^\s*allow_implicit_invocation\s*:\s*(true|false)\s*$/mi);
+    return match ? match[1].toLowerCase() === 'true' : true;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Update only the invocation policy while preserving the rest of openai.yaml.
+ */
+async function setSkillImplicitInvocation(skillPath, allowImplicitInvocation) {
+  const metadataDir = path.join(skillPath, 'agents');
+  const metadataPath = path.join(metadataDir, 'openai.yaml');
+  await fs.mkdir(metadataDir, { recursive: true });
+
+  let content = '';
+  try {
+    content = await fs.readFile(metadataPath, 'utf-8');
+  } catch {
+    // The metadata file is optional; create it when the setting is first changed.
+  }
+
+  const policyLine = `  allow_implicit_invocation: ${allowImplicitInvocation}`;
+  const policyValuePattern = /^\s*allow_implicit_invocation\s*:\s*(true|false)\s*$/mi;
+
+  if (policyValuePattern.test(content)) {
+    content = content.replace(policyValuePattern, policyLine);
+  } else if (/^policy\s*:\s*$/mi.test(content)) {
+    content = content.replace(/^(policy\s*:\s*)$/mi, `$1\n${policyLine}`);
+  } else {
+    content = `${content.replace(/\s*$/, '')}\n\npolicy:\n${policyLine}\n`;
+  }
+
+  await fs.writeFile(metadataPath, content, 'utf-8');
+}
+
 async function updateRegistry(skill) {
   const registryPath = CONFIG.registryFile;
   const registry = await readJsonFile(registryPath, { skills: {} });
+  const existing = registry.skills[skill.name] || {};
 
   registry.skills[skill.name] = {
+    ...existing,
     description: skill.description,
     installedAt: new Date().toISOString(),
   };
 
   await writeJsonFile(registryPath, registry);
+
+  // Reapply a user's policy when an existing skill is replaced or re-imported.
+  if (typeof existing.allowImplicitInvocation === 'boolean') {
+    await setSkillImplicitInvocation(getSkillPath(skill.name), existing.allowImplicitInvocation);
+  }
 }
 
 /**

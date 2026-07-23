@@ -1058,6 +1058,68 @@
       border-top: 1px solid var(--border-color);
     }
 
+    .skill-implicit-policy {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-top: 0.65rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .skill-policy-switch {
+      position: relative;
+      display: inline-flex;
+      width: 42px;
+      height: 24px;
+      flex: 0 0 auto;
+    }
+
+    .skill-policy-switch input {
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      position: absolute;
+    }
+
+    .skill-policy-slider {
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      border-radius: 999px;
+      background: #cbd5e1;
+      transition: background-color 0.2s ease;
+    }
+
+    .skill-policy-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease;
+    }
+
+    .skill-policy-switch input:checked + .skill-policy-slider {
+      background: var(--primary);
+    }
+
+    .skill-policy-switch input:checked + .skill-policy-slider::before {
+      transform: translateX(18px);
+    }
+
+    .skill-policy-switch input:focus-visible + .skill-policy-slider {
+      outline: 3px solid rgb(99 102 241 / 0.25);
+      outline-offset: 2px;
+    }
+
     .client-link-btn {
       min-height: 28px;
       padding: 0.28rem 0.55rem;
@@ -2520,6 +2582,15 @@
                   <span>🔗 ${usageProjects.length} 个项目</span>
                   ${usageProjects.length > 0 ? `<span class="skill-card-projects">${usageProjects.join(', ')}</span>` : ''}
                 </div>
+                <div class="skill-implicit-policy">
+                  <span>允许隐式调用</span>
+                  <label class="skill-policy-switch" title="开关控制此 skill 是否可被自动匹配；关闭后仍可显式调用">
+                    <input type="checkbox"
+                           ${skill.allowImplicitInvocation !== false ? 'checked' : ''}
+                           onchange="toggleSkillImplicitInvocation('${skill.name}', this.checked, this)">
+                    <span class="skill-policy-slider"></span>
+                  </label>
+                </div>
                 <div class="skill-client-links">${clientLinksHtml}</div>
             </div>
           </div>
@@ -2540,6 +2611,26 @@
         await loadSkillsManagement();
       } catch (error) {
         showMessage(`❌ ${error.message}`, 'error');
+      }
+    }
+
+    async function toggleSkillImplicitInvocation(skillName, enabled, input) {
+      try {
+        const response = await fetch(`${API_BASE}/skills/${encodeURIComponent(skillName)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ allowImplicitInvocation: enabled })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || '隐式调用策略更新失败');
+        }
+
+        showMessage(`已${enabled ? '开启' : '关闭'} ${skillName} 的隐式调用`, 'success');
+        await loadSkillsManagement();
+      } catch (error) {
+        if (input) input.checked = !enabled;
+        showMessage(`隐式调用策略更新失败: ${error.message}`, 'error');
       }
     }
 
